@@ -123,14 +123,14 @@ var PinnedSSHIssuerKeys = []SSHIssuerKey{
 		EffectiveAfter:  time.Time{},
 		EffectiveBefore: time.Time{},
 		// Extracted from the SSHSIG signature on NuWyre/anchors
-		// commit f56183a02e228655ba5f8c4493dbc07d99b41dd5 (the
+		// commit 8bd621ee8f829ea00b35e9a559f8e9df6abaced4 (the
 		// .gitattributes commit) AND commit
-		// 5af4596ece859d5697af732f3f1818a27d73e44c (the 2026-04-22 daily
+		// a5c00e50e8d680c2a649be175d2d4feb5beac178 (the 2026-04-22 daily
 		// root anchor). Both commits are signed by the dedicated "NuWyre
 		// Anchors Bot" ssh-ed25519 key (fingerprint
-		// SHA256:EHGMx5SmPUSseyhyV0ffLrMukBlqO69d9M5KIKpb/kA), migrated
-		// 2026-05-26 off the founder's personal SSH key so the evidence
-		// chain is a role identity, not one individual (see
+		// SHA256:2lKlSidBtNKFq9kQbntRf9dSOWPCgU/xsDty3b1l5NM), a role
+		// identity rather than any individual's personal key (migrated
+		// 2026-05-26; key rotated same day — see
 		// docs/initiatives/public-verifier-repo.md). Both commits' SSHSIG
 		// blobs embed the same public key; the extracted bytes base64-encode
 		// to the authorized_keys-format value pinned below.
@@ -141,7 +141,7 @@ var PinnedSSHIssuerKeys = []SSHIssuerKey{
 		//  3. Parse SSHSIG protocol payload (OpenSSH PROTOCOL.sshsig)
 		//  4. Extract public key field bytes
 		//  5. Base64-encode bytes → AuthorizedKeyFormat below
-		AuthorizedKeyFormat: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINdRBv9ADOLWZH7z3S1v0v3wufS6SFj6V9KqJ6778mFk",
+		AuthorizedKeyFormat: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClEsRTw2QAS81dW1AwwfbqgNjBuHQzJJaIuwD+OfMQN",
 		Description:         "Development SSH signing key for git anchor commits to NuWyre/anchors — the dedicated NuWyre Anchors Bot key (a role identity, not a personal key). Distinct from issuer-dev-v1 (which signs example-demo bundle MANIFESTS); this SSH key signs git COMMITS in the anchor repo. CLI surfaces the signer fingerprint per anchored verification for forensic transparency.",
 	},
 }
