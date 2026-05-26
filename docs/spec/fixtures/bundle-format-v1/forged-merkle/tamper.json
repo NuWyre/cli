@@ -1,0 +1,15 @@
+{
+  "fixture": "forged-merkle",
+  "description": "First merkle proof's first path step has its 'sibling' hex hash mutated by flipping the last character.",
+  "modifications": [
+    {
+      "file": "merkle_proofs.json",
+      "mutation": "proofs[0].path[0].sibling last hex character flipped.",
+      "rationale": "Mutating a path step's sibling causes the walked-root computation to diverge from proof.root, surfacing the forgery at check 4. The file's SHA-256 also changes (check 2)."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): merkle_proofs.json SHA-256 declared in manifest no longer matches computed.",
+    "check 4 (Merkle proof): proofs[0] walked root differs from proofs[0].root and from manifest.daily_root."
+  ]
+}

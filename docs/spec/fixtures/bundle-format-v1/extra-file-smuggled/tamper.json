@@ -1,0 +1,13 @@
+{
+  "fixture": "extra-file-smuggled",
+  "description": "Stray file smuggled.txt added to bundle.zip not declared in manifest.artifacts[]. Spec section 18.5 bidirectional set-equality (v2 explicit) + section 3 v1 prose (every file in the bundle is either manifest.json, signature.sig, OR appears in artifacts[]) require every non-manifest non-signature file be declared. Surfaces at Check 2 line 194. Check 1 (manifest signature) still PASSES because manifest bytes are unchanged -- illustrates that a bundle with valid signatures can still be tampered.",
+  "modifications": [
+    {
+      "file": "smuggled.txt (new)",
+      "mutation": "New file added to bundle.zip with content explaining it is not declared in manifest.artifacts[]; not referenced anywhere in manifest.artifacts[]."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): smuggled.txt: this file is present in the bundle but not declared in manifest.artifacts (extra file = tampering signal). Spec section 18.5 bidirectional set-equality (v2 explicit) + section 3 v1 prose require closed-set bundle membership."
+  ]
+}

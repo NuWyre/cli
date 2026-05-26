@@ -1,0 +1,14 @@
+{
+  "fixture": "dev-keys-claiming-prod",
+  "description": "manifest.bundle_type mutated from example-demo to customer-export. Now KeyForBundleEd25519V2 + KeyForBundleMlDsa65 both dispatch to prod-slot keys (placeholders at v2.0.0-rc1 pending Phase 7.F.4 deploy-bootstrap). manifest.signing.signatures[*].key_fingerprint_spki_b64 still carry dev SPKIs not= pinned placeholders. Surfaces at Check 1 step 5 placeholder check (ML-DSA-65 path; Ed25519 path silently bypassed due to step 5 checking v1 PlaceholderProdFingerprint constant instead of PlaceholderProdEd25519V2Fingerprint -- defect discovered during fixture build, heavy-bookmarked for session 101 Tier A pass as recurring-defect-class n=20+). Check 3 (hash chain) ALSO fails because ingestion_signature verification dispatches via KeyForBundle(customer-export) => v1 prod placeholder.",
+  "modifications": [
+    {
+      "file": "manifest.json",
+      "mutation": "bundle_type field mutated from example-demo to customer-export (single field swap)."
+    }
+  ],
+  "expected_failures": [
+    "check 1 (manifest signature): cannot verify v2 customer-export bundle: pinned issuer-prod-v2-ml-dsa-65 key is a placeholder pending Phase 7.F.4 deploy-bootstrap. algorithm_verdicts cardinality 2 with both fail (failV2 short-circuit at step 5).",
+    "check 3 (hash chain): cannot verify per-event ingestion_signature: pinned issuer-prod-v1 key is a placeholder (Check 3 dispatches via v1 KeyForBundle independent of v2 manifest signing dispatch; this is a second-layer defense surface)."
+  ]
+}

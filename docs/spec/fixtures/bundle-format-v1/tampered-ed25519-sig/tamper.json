@@ -1,0 +1,14 @@
+{
+  "fixture": "tampered-ed25519-sig",
+  "description": "First base64 character of signature.sig.signatures[0].signature_b64 (Ed25519 sig) deterministically flipped via the alphabet's pairwise rotation (A↔B, C↔D, ..., a↔b, ..., 0↔1, ..., +↔/). Surfaces at Check 1 verifyEd25519Leg crypto verify (step 8); ML-DSA-65 leg still runs + passes per spec §18.10 no-short-circuit.",
+  "modifications": [
+    {
+      "file": "signature.sig",
+      "mutation": "signatures[0].signature_b64 first base64 character flipped (alphabet pairwise rotation).",
+      "rationale": "Ed25519 signature bytes change → cryptographic verification fails. The base64 string length + shape are unchanged so length-check + base64-decode both still succeed; only the crypto Verify fails."
+    }
+  ],
+  "expected_failures": [
+    "check 1 (manifest signature): Ed25519 verification fails against pinned issuer-dev-v2-ed25519 key. algorithm_verdicts[0]={ed25519, fail}; algorithm_verdicts[1]={ml-dsa-65, pass} per spec §18.10 (ML-DSA-65 leg runs unconditionally regardless of Ed25519 outcome)."
+  ]
+}

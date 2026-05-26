@@ -1,0 +1,17 @@
+{
+  "fixture": "forged-ots",
+  "description": "OpenTimestamps receipt has one byte (offset 100 or the last byte if file shorter) XOR'd with 0x55, corrupting the proof past its magic header.",
+  "modifications": [
+    {
+      "file": "ots_receipts/2026-04-22.ots",
+      "mutation": "Byte at offset 100 (or length-1, whichever smaller) XOR'd with 0x55.",
+      "rationale": "Documents V1 verifier behavior under OTS bytes tamper: check 2 catches the file SHA mismatch; check 5 does NOT (V1 doesn't cryptographically verify pending-state OTS receipts; pending-OTS warn is emitted regardless of byte-level mutations)."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): OTS receipt SHA-256 mismatch in manifest."
+  ],
+  "notes": [
+    "V1 verifier does NOT fail check 5 on this fixture. The OTS receipt is in pending-Bitcoin-confirmation state; V1 emits a pending warn regardless of mutated bytes. A future verifier that runs the OTS protocol's calendar-attestation cross-check on pending receipts WOULD detect this tamper. The fixture is preserved as-is so a Phase 5+ tightening can update the expected status to fail."
+  ]
+}

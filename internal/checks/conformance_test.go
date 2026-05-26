@@ -1,0 +1,433 @@
+// Conformance suite — Phase 5.5 Session 5.5.1B C5 (Go-native side).
+//
+// TestConformanceFixtures iterates the per-fixture directories under
+// docs/spec/fixtures/bundle-format-v1/ and asserts that the native Go
+// verifier produces results structurally matching the fixture's
+// committed results.json. This is the Go-native half of the
+// 3-way conformance contract (TS + Go-native + Go-WASM).
+//
+// **Six tenants** (per memory/feedback_six_tenants.md):
+//
+//   - T1 (long-term value): the conformance contract is the load-
+//     bearing artifact of the standards-track posture. Every commit
+//     that changes verifier behavior MUST update the fixtures'
+//     results.json — this test catches drift.
+//
+//   - T2 (quality/reliability): the structural fields the test
+//     compares (verdict, exit_code, per-check status + check_id +
+//     check_slug, summary counts) are the conformance-stable surface.
+//     Text-dependent fields (errors[], warnings[], reason) are
+//     implementation-localized and the test does NOT compare them.
+//
+//   - T5 (customer trust): any third party can write their own
+//     verifier, run it against the fixtures, and verify conformance
+//     by comparing their structural output to the committed
+//     results.json files.
+//
+// CI conformance comparison happens in 5.5.1C's .github/workflows/
+// spec-conformance.yml; this test is the Go-native single-implementation
+// sanity check that the fixtures + the verifier agree on each fixture's
+// expected behavior.
+package checks_test
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"testing"
+
+	"github.com/nuwyre/cli/internal/bundle"
+	"github.com/nuwyre/cli/internal/checks"
+	"github.com/nuwyre/cli/internal/output"
+)
+
+// fixturesDir locates docs/spec/fixtures/bundle-format-v1/ relative to
+// the repo root. We compute via the current source file's path
+// (runtime.Caller) rather than os.Getwd() because go test runs with
+// CWD = package dir (apps/cli/internal/checks), not repo root.
+func fixturesDir(t *testing.T) string {
+	t.Helper()
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("cannot determine source file path")
+	}
+	// Layout-agnostic: walk up from this test file to the first ancestor that
+	// contains docs/spec/fixtures/bundle-format-v1. Works both in the monorepo
+	// (fixtures live four levels up at the repo root) and in the standalone
+	// published verifier repo (fixtures under docs/spec/ at a shallower depth),
+	// so the same conformance suite runs in either layout without edits.
+	return findRepoArtifact(t, filepath.Dir(thisFile),
+		filepath.Join("docs", "spec", "fixtures", "bundle-format-v1"))
+}
+
+// findRepoArtifact walks up from start, returning the first <ancestor>/rel that
+// exists (file or dir). Lets fixture-dependent tests resolve inputs regardless
+// of repo layout (monorepo subtree vs standalone module-at-root). t.Fatal if
+// not found anywhere up to the filesystem root.
+func findRepoArtifact(t *testing.T, start, rel string) string {
+	t.Helper()
+	dir := start
+	for {
+		cand := filepath.Join(dir, rel)
+		if _, err := os.Stat(cand); err == nil {
+			return cand
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			t.Fatalf("could not locate %q walking up from %q", rel, start)
+		}
+		dir = parent
+	}
+}
+
+// verificationOptions mirrors the JSON shape committed at
+// per-fixture verification_options.json (matches the build script's
+// VerificationOptions interface).
+type verificationOptions struct {
+	Offline            bool `json:"offline"`
+	StrictOTS          bool `json:"strict_ots"`
+	AllowPendingOTS    bool `json:"allow_pending_ots"`
+	AllowAnchorPending bool `json:"allow_anchor_pending"`
+	AllowDevKey        bool `json:"allow_dev_key"`
+}
+
+// expectedResult mirrors the conformance-comparable subset of the
+// fixture's committed results.json. We don't model errors[]/
+// warnings[]/skip_reason/duration_ms here because the conformance
+// contract IGNORES those (implementation-localized text).
+type expectedResult struct {
+	OutputFormatVersion string `json:"output_format_version"`
+	Verdict             string `json:"verdict"`
+	ExitCode            int    `json:"exit_code"`
+	Checks              []struct {
+		CheckID   int    `json:"check_id"`
+		CheckName string `json:"check_name"`
+		CheckSlug string `json:"check_slug"`
+		Status    string `json:"status"`
+	} `json:"checks"`
+	Summary struct {
+		Passed             int `json:"passed"`
+		Failed             int `json:"failed"`
+		Warned             int `json:"warned"`
+		Skipped            int `json:"skipped"`
+		WarnsOptedIntoPass int `json:"warns_opted_into_pass"`
+	} `json:"summary"`
+}
+
+// allFixtures is the canonical fixture list in spec-published order.
+// Keep in sync with the build script + the README table.
+//
+// Phase 7.D session 90 BACKLOG 1.48 A.1.6 closure: 4 audit-log-export
+// fixtures appended (1 valid + 3 tampered). Each fixture's bundle.zip
+// is generated by packages/example-bundle/scripts/conformance-fixtures/
+// audit-log-base-generator.ts (valid) + audit-log-tampered-generator.ts
+// (3 tampered). The conformance test runs the verifier against each
+// audit-log fixture under its declared verification_options.json
+// (offline=false; --allow-dev-key --allow-pending-ots --allow-anchor-
+// pending) and asserts the structural output matches the committed
+// results.json. This is the round-trip lock-in for the cross-language
+// byte-equivalence regression defense: TS-generator emits bytes; Go-
+// verifier reads them; declared shape pins the contract.
+//
+// Detection topology validation across the 4 audit-log fixtures:
+//   - valid-audit-log-export → partial_verification (Check 3 + 8
+//     skipped; matches customer-export precedent)
+//   - tampered-audit-log-event → fail at Check 2 + Check 9
+//   - audit-log-missing-events → fail at Check 2 + Check 9
+//   - forged-audit-log-merkle-subtree → fail at Check 2 + Check 9
+//
+// All audit-log tampers concentrate detection at Check 9 (dual-subtree
+// composition) per session-88 A.1.2/A.1.3 architecture; Check 4 passes
+// for all (events subtree empty/zero for audit-log-export).
+var allFixtures = []string{
+	"valid-bundle",
+	"tampered-event",
+	"tampered-audio",
+	"swapped-event",
+	"forged-merkle",
+	"forged-ots",
+	"forged-rfc3161",
+	"forged-rfc3161-chain",
+	"mismatched-github",
+	"pending-ots",
+	"valid-audit-log-export",
+	"tampered-audit-log-event",
+	"audit-log-missing-events",
+	"forged-audit-log-merkle-subtree",
+	// Phase 7.F.4 sub-arc A (session 98): v2.0.0-rc1 dual-signature
+	// fixture closing session-97 spec-conf M2 + crypto-int M2 cross-
+	// language byte-equivalence empirical-coverage gap. The bundle.zip
+	// is emitted by packages/example-bundle/scripts/conformance-
+	// fixtures/v2-bundle-base-generator.ts using the pinned dev keys
+	// (issuer-dev-v2-{ed25519,ml-dsa-65}). Sub-arcs B + C land the
+	// 10 §14.4 tamper variants + valid audit-log-export v2 + dev-
+	// keys-claiming-operator-only tamper in sessions 99-101.
+	"valid-v2-bundle",
+	// Phase 7.F.4 sub-arc B (session 99): 5 v2 signature-tamper
+	// variants per spec §14.4 PLANNED row. Each is a single byte-
+	// level mutation to signature.sig from the valid-v2-bundle
+	// baseline; emitted by packages/example-bundle/scripts/
+	// conformance-fixtures/v2-bundle-tampered-generator.ts. See per-
+	// fixture tamper.json for mutation + expected_failures detail.
+	// AlgorithmVerdicts shape per spec §18.10:
+	//   - tampered-ed25519-sig:    {ed25519=fail, ml-dsa-65=pass}
+	//   - tampered-ml-dsa-sig:     {ed25519=pass, ml-dsa-65=fail}
+	//   - tampered-both-sigs:      {ed25519=fail, ml-dsa-65=fail}
+	//   - wrong-pq-key-id:         {ed25519=fail, ml-dsa-65=fail}
+	//                              (failV2 short-circuit at step 7
+	//                              cross-check; no crypto run)
+	//   - malformed-pq-sig-length: {ed25519=pass, ml-dsa-65=fail}
+	//                              (length check fires before crypto)
+	"tampered-ed25519-sig",
+	"tampered-ml-dsa-sig",
+	"tampered-both-sigs",
+	"wrong-pq-key-id",
+	"malformed-pq-sig-length",
+	// Phase 7.F.4 sub-arc C session 100: 5 v2 structural-tamper
+	// variants per spec §14.4 PLANNED row. Distinct from sub-arc B
+	// (cryptographic-byte mutations) — these mutate at the schema-
+	// structural level (cross-check fields, positional entries,
+	// manifest membership). Emitted by packages/example-bundle/
+	// scripts/conformance-fixtures/v2-bundle-structural-tampered-
+	// generator.ts. Detection-topology classification:
+	//   - manifest-signing-mismatch:   sig.signatures[1].fingerprint
+	//                                  mutated; step 7(b) cross-check
+	//                                  → failV2 {fail, fail}
+	//   - swapped-signature-slots:     positional invariant violated;
+	//                                  step 1d → failV2 {fail, fail}
+	//   - mixed-environment-keys:      key_id mutated to prod-slot;
+	//                                  step 7(d) pinned cross-check
+	//                                  → failV2 {fail, fail}
+	//   - dev-keys-claiming-prod:      bundle_type → customer-export;
+	//                                  step 5 ML-DSA placeholder check
+	//                                  → failV2 {fail, fail} + Check 3
+	//                                  hash chain ALSO fails on v1
+	//                                  prod placeholder dispatch
+	//   - extra-file-smuggled:         smuggled.txt added; Check 1
+	//                                  PASSES (manifest signed bytes
+	//                                  unchanged); Check 2 FAILS on
+	//                                  spec §18.5 bidirectional set-
+	//                                  equality violation
+	// Sub-arc D (session 101): valid-v2-audit-log-export + dev-keys-
+	// claiming-operator-only-audit-log require generate-audit-log-
+	// bundle.ts v2 dual-sig extension (gap discovered session 100).
+	"manifest-signing-mismatch",
+	"swapped-signature-slots",
+	"mixed-environment-keys",
+	"dev-keys-claiming-prod",
+	"extra-file-smuggled",
+	// Phase 7.F.4 sub-arc D session 101: v2 audit-log-export fixtures.
+	// Both fixtures exercise the v2 dual-sig dispatch on the audit-log
+	// path (generate-audit-log-bundle.ts extension; mirror of generate-
+	// bundle.ts v2 path). valid-v2-audit-log-export is the canonical
+	// happy-path baseline; dev-keys-claiming-operator-only-audit-log
+	// is the security-auditor-H1 + spec-§18.6-audit-log-clause defense
+	// fixture (currently captures pre-elevation Go behavior — Check 1
+	// emits dev_key warn that folds to pass; spec-correct behavior is
+	// warn ELEVATED TO FAIL for operator-only + dev-slot dispatch.
+	// Heavy-bookmarked as recurring-defect-class n=21+ inverse-direction
+	// instance for session 102 promotion-gate Tier A pass closure).
+	"valid-v2-audit-log-export",
+	"dev-keys-claiming-operator-only-audit-log",
+}
+
+// TestConformanceFixtures runs the Go-native verifier against each
+// committed fixture + asserts that its output structurally matches the
+// fixture's expected results.json.
+//
+// Skipped under -short flag (the fixtures are slow to verify due to
+// crypto-heavy paths; CI runs full mode but `go test -short` keeps the
+// inner loop fast for unrelated changes).
+func TestConformanceFixtures(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping conformance fixture suite under -short")
+	}
+	root := fixturesDir(t)
+
+	// The fixtures' verification_options declare offline=false for
+	// checks 5 + 7 (network-dependent). Conformance runs under
+	// CI MAY have network; local dev runs may not. We honor the
+	// declared options literally — a local-dev run without network
+	// will see check 5/7 surface differently than the fixture
+	// expects, which is reported as a divergence (with diagnostic
+	// guidance pointing at the network-dependency).
+	for _, name := range allFixtures {
+		fixture := name
+		t.Run(fixture, func(t *testing.T) {
+			optsBytes, err := os.ReadFile(filepath.Join(root, fixture, "verification_options.json"))
+			if err != nil {
+				t.Fatalf("read verification_options.json: %v", err)
+			}
+			var vopts verificationOptions
+			if err := json.Unmarshal(optsBytes, &vopts); err != nil {
+				t.Fatalf("parse verification_options.json: %v", err)
+			}
+
+			expBytes, err := os.ReadFile(filepath.Join(root, fixture, "results.json"))
+			if err != nil {
+				t.Fatalf("read results.json: %v", err)
+			}
+			var exp expectedResult
+			if err := json.Unmarshal(expBytes, &exp); err != nil {
+				t.Fatalf("parse results.json: %v", err)
+			}
+
+			bundleBytes, err := os.ReadFile(filepath.Join(root, fixture, "bundle.zip"))
+			if err != nil {
+				t.Fatalf("read bundle.zip: %v", err)
+			}
+			b, err := bundle.LoadFromBytes(bundleBytes, fmt.Sprintf("fixtures/%s/bundle.zip", fixture))
+			if err != nil {
+				t.Fatalf("load bundle: %v", err)
+			}
+
+			copts := checks.CheckOptions{
+				Offline:            vopts.Offline,
+				StrictOTS:          vopts.StrictOTS,
+				AllowPendingOTS:    vopts.AllowPendingOTS,
+				AllowAnchorPending: vopts.AllowAnchorPending,
+				AllowDevKey:        vopts.AllowDevKey,
+			}
+
+			// Build the full check registry. We share construction with
+			// the main command so any change to default endpoints /
+			// trust roots applies here too.
+			//
+			// Tenant 2: the same registry the production CLI uses. The
+			// conformance test exercises the actual default code paths,
+			// not a test-doubled subset.
+			httpClient := checks.NewDefaultHTTPClient("conformance-test")
+			check5 := checks.NewCheck5OTS(httpClient)
+			check6, err := checks.NewCheck6RFC3161()
+			if err != nil {
+				t.Fatalf("check 6 construction: %v", err)
+			}
+			ghFetcher, err := checks.NewGithubHTTPSFetcher(checks.AnchorRepoDefault, httpClient)
+			if err != nil {
+				t.Fatalf("check 7 fetcher construction: %v", err)
+			}
+			check7 := checks.NewCheck7Github(ghFetcher)
+
+			// Phase 6.2.C-C session 72 registry parity closure: the
+			// conformance test registry now mirrors the production
+			// registry at apps/cli/cmd/nuwyre/main.go:buildCheckRegistry
+			// (9-check sequence per spec §14.1 canonical ordering).
+			// Check 8 (ephemeral-session) returns Skipped for single-
+			// key topology bundles; Check 9 (audit-log-merkle) returns
+			// Skipped for non-audit-log-export bundles. The 10 existing
+			// customer-export fixtures' results.json were backfilled
+			// with Check 8 + Check 9 status=skipped entries (summary.
+			// skipped bumped +2 per fixture). Closes the documented
+			// divergence between conformance test registry + production
+			// check sequence flagged at session 70.
+			//
+			// Order matches buildCheckRegistry execution order: Check 8
+			// runs after Check 2 + before Check 3 (ephemeral-sessions
+			// topology dependency populates bundle.EphemeralPubkeyByID
+			// before Check 3 consumes it). RunChecks sorts the result
+			// list by CheckID for canonical report order at line 198.
+			registry := []checks.Check{
+				checks.Check1Signature{},
+				checks.Check2Artifacts{},
+				checks.Check8EphemeralSession{},
+				checks.Check3Chain{},
+				checks.Check4Merkle{},
+				check5,
+				check6,
+				check7,
+				checks.Check9AuditLogMerkle{},
+			}
+
+			results, _ := checks.RunChecks(b, copts, registry...)
+			// Phase 6.2.C-C session 72 — mirror the production path's
+			// SortByCheckID call (apps/cli/cmd/nuwyre/main.go:228+).
+			// RunChecks preserves registry execution order (Check 8
+			// between Check 2 + Check 3 for the ephemeral-session
+			// topology dependency); production CLI sorts results by
+			// CheckID before JSON output so the on-wire shape is the
+			// canonical spec §14.1 sequence 1, 2, 3, 4, 5, 6, 7, 8, 9.
+			// Conformance test compares against fixture results.json
+			// which is authored in the canonical sorted order.
+			results = checks.SortByCheckID(results)
+			verdict := checks.AggregateVerdict(results, copts)
+
+			// Render to the JSON shape the conformance suite compares.
+			// Phase 7.F.4 sub-arc A (session 98): use FormatResultsForBundle
+			// so v2 bundles emit output_format_version="2" per spec §14.1
+			// line 1632 + §18.10. v1 bundles emit "1" unchanged.
+			rendered := output.NewJSONFormatter(false).FormatResultsForBundle(results, verdict, b.Manifest.BundleFormat)
+			var actual expectedResult
+			if err := json.Unmarshal([]byte(rendered), &actual); err != nil {
+				t.Fatalf("parse verifier JSON output: %v\noutput: %s", err, rendered)
+			}
+
+			// Debug: when a fixture diverges, dump the actual JSON
+			// output so the operator can see exactly what the verifier
+			// produced. Pre-divergence so the dump always lands even
+			// if a later assertion calls t.Fatal.
+			defer func() {
+				if t.Failed() {
+					var pretty map[string]interface{}
+					_ = json.Unmarshal([]byte(rendered), &pretty)
+					prettyBytes, _ := json.MarshalIndent(pretty, "    ", "  ")
+					t.Logf("verifier JSON output:\n    %s", prettyBytes)
+				}
+			}()
+
+			// Structural comparison. The conformance contract (per
+			// docs/spec/fixtures/bundle-format-v1/results.schema.json)
+			// compares: verdict, exit_code, per-check check_id +
+			// check_slug + status, and summary counts. It does NOT
+			// compare per-check errors[] / warnings[] / skip_reason /
+			// duration_ms / verifier `reason` text.
+			// Phase 7.F.4 sub-arc A (session 98): compare against fixture's
+			// declared output_format_version (was hardcoded "1"); v2 fixtures
+			// declare "2" per spec §14.1 line 1632 + §18.10.
+			if actual.OutputFormatVersion != exp.OutputFormatVersion {
+				t.Errorf("output_format_version: actual=%q expected=%q", actual.OutputFormatVersion, exp.OutputFormatVersion)
+			}
+			if actual.Verdict != exp.Verdict {
+				t.Errorf("verdict: actual=%q expected=%q", actual.Verdict, exp.Verdict)
+			}
+			if actual.ExitCode != exp.ExitCode {
+				t.Errorf("exit_code: actual=%d expected=%d", actual.ExitCode, exp.ExitCode)
+			}
+			if len(actual.Checks) != len(exp.Checks) {
+				t.Fatalf("checks length: actual=%d expected=%d", len(actual.Checks), len(exp.Checks))
+			}
+			for i := range actual.Checks {
+				if actual.Checks[i].CheckID != exp.Checks[i].CheckID {
+					t.Errorf("checks[%d].check_id: actual=%d expected=%d", i, actual.Checks[i].CheckID, exp.Checks[i].CheckID)
+				}
+				if actual.Checks[i].CheckSlug != exp.Checks[i].CheckSlug {
+					t.Errorf("checks[%d].check_slug: actual=%q expected=%q", i, actual.Checks[i].CheckSlug, exp.Checks[i].CheckSlug)
+				}
+				if actual.Checks[i].Status != exp.Checks[i].Status {
+					t.Errorf("checks[%d] (%s).status: actual=%q expected=%q",
+						i, actual.Checks[i].CheckSlug, actual.Checks[i].Status, exp.Checks[i].Status)
+				}
+			}
+			// Summary structural comparison. Counts MUST match exactly;
+			// a mismatch indicates either the fixture's results.json is
+			// stale OR the verifier's summary semantics changed.
+			if actual.Summary.Passed != exp.Summary.Passed {
+				t.Errorf("summary.passed: actual=%d expected=%d", actual.Summary.Passed, exp.Summary.Passed)
+			}
+			if actual.Summary.Failed != exp.Summary.Failed {
+				t.Errorf("summary.failed: actual=%d expected=%d", actual.Summary.Failed, exp.Summary.Failed)
+			}
+			if actual.Summary.Warned != exp.Summary.Warned {
+				t.Errorf("summary.warned: actual=%d expected=%d", actual.Summary.Warned, exp.Summary.Warned)
+			}
+			if actual.Summary.Skipped != exp.Summary.Skipped {
+				t.Errorf("summary.skipped: actual=%d expected=%d", actual.Summary.Skipped, exp.Summary.Skipped)
+			}
+			if actual.Summary.WarnsOptedIntoPass != exp.Summary.WarnsOptedIntoPass {
+				t.Errorf("summary.warns_opted_into_pass: actual=%d expected=%d",
+					actual.Summary.WarnsOptedIntoPass, exp.Summary.WarnsOptedIntoPass)
+			}
+		})
+	}
+}

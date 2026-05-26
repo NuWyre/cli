@@ -1,0 +1,14 @@
+{
+  "fixture": "malformed-pq-sig-length",
+  "description": "signature.sig.signatures[1].signature_b64 (ML-DSA-65 sig) truncated by 100 base64 chars (4412 → 4312 chars; decoded length 3309 → 3234 bytes ≠ FIPS 204 §4 Table 1 mandated 3309). Surfaces at Check 1 verifyMlDsa65Leg length check (`if len(sig) != mldsa65.SignatureSize`) BEFORE crypto verify. Ed25519 leg runs at step 8 + passes.",
+  "modifications": [
+    {
+      "file": "signature.sig",
+      "mutation": "signatures[1].signature_b64 truncated by 100 base64 chars (still a valid multiple-of-4 b64 string since 4412 % 4 == 0 + 100 % 4 == 0; decoder accepts it but resulting byte length is wrong).",
+      "rationale": "Spec §18.4 + FIPS 204 §4 Table 1 mandate ML-DSA-65 signatures are exactly 3309 bytes. A truncated signature fails the length-check before crypto verification; this fixture exercises the verifier's length-validation discipline against malformed input."
+    }
+  ],
+  "expected_failures": [
+    "check 1 (manifest signature): ML-DSA-65 sig length check fails — signatures[1].signature_b64 decoded to 3234 bytes, expected 3309. algorithm_verdicts[0]={ed25519, pass}; algorithm_verdicts[1]={ml-dsa-65, fail} per spec §18.10."
+  ]
+}

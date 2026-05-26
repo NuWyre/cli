@@ -1,0 +1,71 @@
+# GoReleaser config for signed NuWyre verifier releases.
+#
+# Runs in the published NuWyre/cli repo via .github/workflows/release.yml on a
+# vX.Y.Z tag. Per locked decision D1:
+#   - toolchain pinned (the workflow installs Go from go.mod),
+#   - a FIXED version string injected from the tag ({{ .Version }}), not
+#     `git describe`,
+#   - -trimpath,
+# plus cosign keyless signatures over the checksums file. SLSA build provenance
+# is attached by the release workflow (actions/attest-build-provenance).
+#
+# DRAFT — cosign keyless signing + the GitHub Release publish only work inside
+# the live repo (they use GitHub's OIDC identity), so this cannot be validated
+# until NuWyre/cli is published. Run `goreleaser check` after publish.
+version: 2
+
+project_name: nuwyre
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: nuwyre
+    main: ./cmd/nuwyre
+    binary: nuwyre
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.Version={{ .Version }}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: nuwyre
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+# cosign keyless signing of the checksums file: the GitHub Actions OIDC token
+# identifies the signer via Sigstore Fulcio, and the signature is logged in the
+# public Rekor transparency log. Verifying the checksums signature + each
+# binary's SHA-256 against checksums.txt transitively authenticates every
+# downloaded artifact — no private signing key for NuWyre to guard.
+signs:
+  - cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - "--yes"
+      - "--output-signature=${signature}"
+      - "--output-certificate=${certificate}"
+      - "${artifact}"
+
+release:
+  github:
+    owner: NuWyre
+    name: cli
+  prerelease: auto
+
+changelog:
+  use: github

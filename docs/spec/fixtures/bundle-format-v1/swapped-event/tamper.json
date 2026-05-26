@@ -1,0 +1,17 @@
+{
+  "fixture": "swapped-event",
+  "description": "Two adjacent events from the same session are swapped in events.jsonl line order. The events themselves are unchanged byte-for-byte; only their positions in the file differ.",
+  "modifications": [
+    {
+      "file": "events.jsonl",
+      "mutation": "Lines at the two indices (chosen at runtime) are swapped.",
+      "rationale": "Documents V1 verifier behavior under same-session adjacent-event swap. Check 2 detects the file SHA mismatch; check 3 does NOT (V1 check 3 walks per-session chains via prev_event_hash links, not via file-line order)."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): events.jsonl bytes reordered; SHA-256 declared in manifest no longer matches."
+  ],
+  "notes": [
+    "V1 verifier does NOT fail check 3 on this fixture — check 3 walks chains by prev_event_hash links which are unchanged by a file-line swap. A future verifier may tighten check 3 to enforce file-line ordering; this fixture would then need its results.json updated and the spec amendment that introduced the tightening."
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "$comment": "v1.0.17 audit-log-export tampered-event fixture (FAIL Check 2 + Check 9). Phase 7.D session 89: bundle.zip GENERATED via packages/example-bundle/scripts/conformance-fixtures/audit-log-tampered-generator.ts (mutate first audit log event's forensic.event_hash last hex char on the baseline at valid-audit-log-export/bundle.zip). Reconciled against actual Go verifier emit. **Detection topology**: Check 2 (artifact integrity) catches audit_log_events.jsonl SHA-256 mismatch; Check 9 (audit-log Merkle) catches event_hash recomputation mismatch at the mutated leaf. Per session 88 A.1.2/A.1.3 Go-side closures, Check 3 + Check 4 do NOT fail on this tamper — audit-log chain integrity verification was moved to Check 9 (Check 3 is skipped for audit-log-export with empty events.jsonl per spec §16.2.2 + §16.3.1; Check 4 verifies events subtree root which is empty/zero for audit-log-export bundles). This is the intended dual-subtree composition architecture: audit-log integrity lives at Check 9.",
+  "output_format_version": "1",
+  "verdict": "fail",
+  "exit_code": 1,
+  "reason": "(implementation-specific; ignored by conformance contract)",
+  "checks": [
+    {
+      "check_id": 1,
+      "check_name": "manifest signature",
+      "check_slug": "manifest-signature",
+      "status": "warn",
+      "warn_category": "dev_key",
+      "errors": [],
+      "warnings": ["development bundle signed with issuer-dev-v1; not for production trust"],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 2,
+      "check_name": "artifact integrity",
+      "check_slug": "artifact-integrity",
+      "status": "fail",
+      "warn_category": "",
+      "errors": ["audit_log_events.jsonl declared SHA-256 in manifest.artifacts does not match computed SHA-256 of mutated bytes"],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 3,
+      "check_name": "hash chain",
+      "check_slug": "hash-chain",
+      "status": "skipped",
+      "warn_category": "",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "audit-log-export bundle with empty events.jsonl; audit-log chain integrity verified at Check 9 per spec §16.2.2 + §16.3.1 empty-subtree composition",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 4,
+      "check_name": "merkle proof",
+      "check_slug": "merkle-proof",
+      "status": "pass",
+      "warn_category": "",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 5,
+      "check_name": "opentimestamps",
+      "check_slug": "opentimestamps",
+      "status": "warn",
+      "warn_category": "pending_ots",
+      "errors": [],
+      "warnings": ["OTS submission declared pending Bitcoin confirmation with receipt_path=null"],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 6,
+      "check_name": "rfc3161",
+      "check_slug": "rfc3161",
+      "status": "pass",
+      "warn_category": "",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 7,
+      "check_name": "github anchor",
+      "check_slug": "github",
+      "status": "warn",
+      "warn_category": "anchor_pending",
+      "errors": [],
+      "warnings": ["GitHub anchor in anchor-pending state"],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 8,
+      "check_name": "ephemeral session",
+      "check_slug": "ephemeral-session",
+      "status": "skipped",
+      "warn_category": "",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "bundle uses single-key signing topology; ephemeral-session attestation not applicable",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 9,
+      "check_name": "audit-log merkle",
+      "check_slug": "audit-log-merkle",
+      "status": "fail",
+      "warn_category": "",
+      "errors": ["audit_log_events.jsonl line 1: recomputed event_hash from event bytes does not match declared forensic.event_hash; the audit log chain target was tampered"],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 2,
+    "warned": 2,
+    "skipped": 0,
+    "warns_opted_into_pass": 3
+  }
+}

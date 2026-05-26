@@ -1,0 +1,7 @@
+{
+  "offline": false,
+  "strict_ots": false,
+  "allow_pending_ots": true,
+  "allow_anchor_pending": true,
+  "allow_dev_key": true
+}

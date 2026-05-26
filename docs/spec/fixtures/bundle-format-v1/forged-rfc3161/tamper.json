@@ -1,0 +1,17 @@
+{
+  "fixture": "forged-rfc3161",
+  "description": "First RFC 3161 timestamp token (.tsr) has one byte (offset 200 or last byte if shorter) XOR'd with 0x55. PKCS#7 SignedData structure remains parseable but signature verification of that single token fails.",
+  "modifications": [
+    {
+      "file": "<first rfc3161_receipts/*.tsr>",
+      "mutation": "Byte at offset 200 (or length-1, whichever smaller) XOR'd with 0x55.",
+      "rationale": "Documents V1 verifier behavior under single-TSA token tamper: check 2 catches the file SHA mismatch; check 6 does NOT (the base bundle has 3 TSAs verified; ONE invalidated still leaves ≥2 verifying, which satisfies spec §11.1)."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): .tsr file SHA-256 mismatch in manifest."
+  ],
+  "notes": [
+    "V1 verifier does NOT fail check 6 on this fixture. Spec §11.1 mandates ≥2-of-3 distinct TSAs verify; the base bundle has 3 TSAs and the tamper invalidates ONE, leaving 2 verifying. A bundle with only 2 TSAs would fail check 6 under this tamper (only 1 verifying); the fixture's structure documents the multi-TSA tolerance."
+  ]
+}

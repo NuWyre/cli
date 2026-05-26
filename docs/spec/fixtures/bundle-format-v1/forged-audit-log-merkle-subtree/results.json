@@ -1,0 +1,115 @@
+{
+  "$comment": "v1.0.17 audit-log-export tampered-merkle-subtree fixture (FAIL Check 2 + Check 9). Phase 7.D session 89: bundle.zip GENERATED via packages/example-bundle/scripts/conformance-fixtures/audit-log-tampered-generator.ts (mutate first proof's first sibling hash in audit_log_subtree.json from the baseline at valid-audit-log-export/bundle.zip). Reconciled against actual Go verifier emit. **Detection topology**: Check 2 (artifact integrity) catches audit_log_subtree.json SHA-256 mismatch; Check 9 (audit-log Merkle) catches walked-root divergence at the first proof's leaf-to-root path. Primary event subtree (merkle_proofs.json) untouched — Check 4 over the events subtree still passes. This fixture exercises the v1.0.10-specific dual-subtree composition failure path: audit-log subtree integrity lives at Check 9, distinct from events subtree integrity at Check 4.",
+  "output_format_version": "1",
+  "verdict": "fail",
+  "exit_code": 1,
+  "reason": "(implementation-specific; ignored by conformance contract)",
+  "checks": [
+    {
+      "check_id": 1,
+      "check_name": "manifest signature",
+      "check_slug": "manifest-signature",
+      "status": "warn",
+      "warn_category": "dev_key",
+      "errors": [],
+      "warnings": ["development bundle signed with issuer-dev-v1; not for production trust"],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 2,
+      "check_name": "artifact integrity",
+      "check_slug": "artifact-integrity",
+      "status": "fail",
+      "warn_category": "",
+      "errors": ["audit_log_subtree.json declared SHA-256 in manifest.artifacts does not match computed SHA-256 of mutated bytes"],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 3,
+      "check_name": "hash chain",
+      "check_slug": "hash-chain",
+      "status": "skipped",
+      "warn_category": "",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "audit-log-export bundle with empty events.jsonl; audit-log chain integrity verified at Check 9 per spec §16.2.2 + §16.3.1 empty-subtree composition",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 4,
+      "check_name": "merkle proof",
+      "check_slug": "merkle-proof",
+      "status": "pass",
+      "warn_category": "",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 5,
+      "check_name": "opentimestamps",
+      "check_slug": "opentimestamps",
+      "status": "warn",
+      "warn_category": "pending_ots",
+      "errors": [],
+      "warnings": ["OTS submission declared pending Bitcoin confirmation with receipt_path=null"],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 6,
+      "check_name": "rfc3161",
+      "check_slug": "rfc3161",
+      "status": "pass",
+      "warn_category": "",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 7,
+      "check_name": "github anchor",
+      "check_slug": "github",
+      "status": "warn",
+      "warn_category": "anchor_pending",
+      "errors": [],
+      "warnings": ["GitHub anchor in anchor-pending state"],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 8,
+      "check_name": "ephemeral session",
+      "check_slug": "ephemeral-session",
+      "status": "skipped",
+      "warn_category": "",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "bundle uses single-key signing topology; ephemeral-session attestation not applicable",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 9,
+      "check_name": "audit-log merkle",
+      "check_slug": "audit-log-merkle",
+      "status": "fail",
+      "warn_category": "",
+      "errors": ["audit_log_subtree.json proofs[0] walked Merkle root from mutated sibling path does not equal manifest.merkle_subtrees.audit_log_root"],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 2,
+    "warned": 2,
+    "skipped": 0,
+    "warns_opted_into_pass": 3
+  }
+}

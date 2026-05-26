@@ -1,0 +1,44 @@
+# Public verifier repo CI — build + vet + the full test suite (including the
+# 27-fixture conformance suite and the cmd/nuwyre exec tests) + the WebAssembly
+# build, on every push/PR. Runs in the published NuWyre/cli repo, where this
+# file sits at .github/workflows/. (In the NuWyre monorepo it lives under
+# apps/cli/.github/ and is inert — GitHub only runs root-level workflows — so it
+# activates only after scripts/export-verifier.mjs publishes the repo.)
+#
+# Go is pinned from go.mod (go-version-file) so CI matches the module's declared
+# toolchain. Tenets: T2 (quality/reliability — the suite is the verifier's
+# correctness contract); T5 (customer trust — green CI on a public repo is the
+# visible evidence the verifier conforms to the spec + fixtures).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test (full suite incl. the 27 conformance fixtures + KAT vectors)
+        run: go test ./...
+
+      - name: WebAssembly build
+        run: make wasm

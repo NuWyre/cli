@@ -1,0 +1,378 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nuwyre.com/spec/event-v1.schema.json",
+  "$comment": "Document revision 1.1 — additive over v1.0: content.audio_ref sub-schema added per build plan v3.1.0. Wire schema_version remains 1.",
+  "title": "NuWyre Event v1",
+  "description": "Canonical shape of an entry in the NuWyre evidence ledger. Document revision 1.1 (audio binding additive). See https://nuwyre.com/methodology for the complete specification.",
+  "$ref": "#/definitions/NuWyreEventV1",
+  "definitions": {
+    "NuWyreEventV1": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "type": "number",
+          "const": 1
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "agent_attestation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/NuWyreEventV1/properties/event_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "identity": {
+          "type": "object",
+          "properties": {
+            "organization_id": {
+              "$ref": "#/definitions/NuWyreEventV1/properties/event_id"
+            },
+            "agent_id": {
+              "$ref": "#/definitions/NuWyreEventV1/properties/event_id"
+            },
+            "session_id": {
+              "$ref": "#/definitions/NuWyreEventV1/properties/event_id"
+            },
+            "model_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "model_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "deployment_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "organization_id",
+            "agent_id",
+            "session_id",
+            "model_id",
+            "model_version",
+            "deployment_id"
+          ],
+          "additionalProperties": false
+        },
+        "content": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "enum": [
+                "user",
+                "assistant",
+                "system",
+                "tool_call",
+                "tool_result",
+                "system_event"
+              ]
+            },
+            "content": {
+              "type": "string"
+            },
+            "content_hash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "tool_calls": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "args_hash": {
+                    "$ref": "#/definitions/NuWyreEventV1/properties/content/properties/content_hash"
+                  },
+                  "result_hash": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/NuWyreEventV1/properties/content/properties/content_hash"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "latency_ms": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "error": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "args_hash",
+                  "result_hash",
+                  "latency_ms",
+                  "error"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "prompt_hash": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NuWyreEventV1/properties/content/properties/content_hash"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "system_prompt_hash": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NuWyreEventV1/properties/content/properties/content_hash"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "audio_ref": {
+              "type": "object",
+              "properties": {
+                "hash": {
+                  "$ref": "#/definitions/NuWyreEventV1/properties/content/properties/content_hash"
+                },
+                "storage_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "mime_type": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "duration_ms": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                "sample_rate": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "channels": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "hash",
+                "storage_path",
+                "mime_type",
+                "duration_ms",
+                "sample_rate",
+                "channels"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "role",
+            "content",
+            "content_hash",
+            "tool_calls",
+            "prompt_hash",
+            "system_prompt_hash"
+          ],
+          "additionalProperties": false
+        },
+        "forensic": {
+          "type": "object",
+          "properties": {
+            "timestamp_iso": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$"
+            },
+            "timestamp_unix_ns": {
+              "type": "string",
+              "pattern": "^\\d+$"
+            },
+            "sequence_number": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "prev_event_hash": {
+              "$ref": "#/definitions/NuWyreEventV1/properties/content/properties/content_hash"
+            },
+            "event_hash": {
+              "$ref": "#/definitions/NuWyreEventV1/properties/content/properties/content_hash"
+            },
+            "ingestion_signature": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9+/]{86}==$"
+            }
+          },
+          "required": [
+            "timestamp_iso",
+            "timestamp_unix_ns",
+            "sequence_number",
+            "prev_event_hash",
+            "event_hash",
+            "ingestion_signature"
+          ],
+          "additionalProperties": false
+        },
+        "compliance_metadata": {
+          "type": "object",
+          "properties": {
+            "jurisdiction": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 8
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "retention_class": {
+              "type": "string",
+              "enum": [
+                "default",
+                "extended",
+                "litigation_hold",
+                "pii_minimized",
+                "phi_minimized"
+              ]
+            },
+            "legal_hold": {
+              "type": "boolean"
+            },
+            "consent_state": {
+              "type": "string",
+              "enum": [
+                "unknown",
+                "implicit",
+                "express_call_recorded",
+                "express_written",
+                "withdrawn"
+              ]
+            },
+            "classification_labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "redaction_applied": {
+              "type": "boolean"
+            },
+            "redaction_method": {
+              "type": "string",
+              "enum": [
+                "none",
+                "regex_mask",
+                "presidio_v1",
+                "manual",
+                "hash_only"
+              ]
+            },
+            "pii_detected": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "phi_detected": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "jurisdiction",
+            "retention_class",
+            "legal_hold",
+            "consent_state",
+            "classification_labels",
+            "redaction_applied",
+            "redaction_method",
+            "pii_detected",
+            "phi_detected"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "source_adapter": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ingestion_timestamp": {
+              "$ref": "#/definitions/NuWyreEventV1/properties/forensic/properties/timestamp_iso"
+            }
+          },
+          "required": [
+            "source_adapter",
+            "source_version",
+            "ingestion_timestamp"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "event_id",
+        "agent_attestation_id",
+        "identity",
+        "content",
+        "forensic",
+        "compliance_metadata",
+        "provenance"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

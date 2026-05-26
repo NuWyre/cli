@@ -1,0 +1,64 @@
+# Signed release pipeline for the public NuWyre verifier.
+#
+# On a vX.Y.Z tag, GoReleaser cross-compiles the `nuwyre` CLI, archives it,
+# writes checksums, and cosign-signs the checksums (keyless, via GitHub OIDC —
+# no private key to guard; signature logged in the public Rekor transparency
+# log). Then actions/attest-build-provenance attaches SLSA build provenance to
+# the release artifacts, so a downloader can trace any binary back to the exact
+# public source commit + build. This is the locked-D1 premium trust signal — an
+# authentic, attested download, not just "a file in a repo."
+#
+# Lives in the EXPORTED tree (inert in the monorepo — GitHub runs only
+# root-level workflows). DRAFT: cosign keyless + the release publish only work
+# inside the live NuWyre/cli repo (GitHub OIDC), so this can't be validated
+# until publish. Verify a release afterward with:
+#   cosign verify-blob --certificate checksums.txt.pem \
+#     --signature checksums.txt.sig \
+#     --certificate-identity-regexp 'https://github.com/NuWyre/cli/.*' \
+#     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+#     checksums.txt
+#   gh attestation verify <archive> --repo NuWyre/cli
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write      # create the GitHub Release + upload assets
+  id-token: write      # cosign keyless + provenance attestation (OIDC)
+  attestations: write  # actions/attest-build-provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # GoReleaser needs tags + history
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Build + archive + checksum + cosign-sign (GoReleaser)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attach SLSA build provenance to the release artifacts
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt

@@ -1,0 +1,13 @@
+{
+  "fixture": "mixed-environment-keys",
+  "description": "manifest.signing.signatures[0].key_id mutated from issuer-dev-v2-ed25519 to issuer-prod-v2-ed25519 (signature.sig also mutated to match, isolating defect at step 7(d) pinned cross-check). bundle_type=example-demo dispatches Ed25519 to dev-slot pinned key (issuer-dev-v2-ed25519). Manifest claims prod-slot key_id but pinned dev-slot key_id differs => step 7(d) fires. NOTE: spec section 18.6 cross-environment-slot check at step 3 is unreachable under current dispatch per session-97 SlotCoherence t.Skip rationale; step 7(d) pinned cross-check is the practical detection path.",
+  "modifications": [
+    {
+      "file": "manifest.json + signature.sig",
+      "mutation": "Both files signatures[0].key_id mutated from issuer-dev-v2-ed25519 to issuer-prod-v2-ed25519 (preserves step 7(c) cross-check between signature.sig and manifest.signing; isolates detection at step 7(d) pinned cross-check)."
+    }
+  ],
+  "expected_failures": [
+    "check 1 (manifest signature): signing.signatures[0].key_id issuer-prod-v2-ed25519 does not match pinned issuer-dev-v2-ed25519 (bundle_type=example-demo dispatches dev-slot). algorithm_verdicts cardinality 2 with both fail (failV2 short-circuit at step 7(d) per spec section 18.10)."
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "fixture": "tampered-both-sigs",
+  "description": "First base64 character of BOTH signature.sig.signatures[0].signature_b64 (Ed25519) AND signature.sig.signatures[1].signature_b64 (ML-DSA-65) deterministically flipped. Surfaces at Check 1 BOTH verifyEd25519Leg + verifyMlDsa65Leg crypto verify; both algorithm_verdicts emit as fail per spec §18.10 no-short-circuit.",
+  "modifications": [
+    {
+      "file": "signature.sig",
+      "mutation": "signatures[0].signature_b64 + signatures[1].signature_b64 first base64 char each flipped.",
+      "rationale": "Both algorithm legs fail crypto verification. Spec §18.10 mandates both algorithm_verdicts emit even when both fail (no short-circuit); this fixture exercises that contract."
+    }
+  ],
+  "expected_failures": [
+    "check 1 (manifest signature): Ed25519 + ML-DSA-65 BOTH fail crypto verification. algorithm_verdicts[0]={ed25519, fail}; algorithm_verdicts[1]={ml-dsa-65, fail} per spec §18.10."
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nuwyre.com/spec/audit-log-event-v1.schema.json",
+  "$comment": "Document revision 1.0.17 (Phase 7.D session 85; SPEC_GOVERNANCE.md §1 closure of 'if/when adopted'). Companion schema to event-v1.schema.json carrying the audit-log event canonical shape per bundle-format-v1.md §16.2. Closed enums for actor.type + subject.type per §16.2 + §16.5; forensic.* sub-shape per §16.2 + §16.2.2 chain-isolation contract.",
+  "title": "NuWyre Audit-Log Event v1",
+  "description": "Canonical shape of an entry in the NuWyre audit-log chain (independent from the primary event chain per §6.2). See https://nuwyre.com/methodology + bundle-format-v1.md §16.2 for the complete specification.",
+  "$ref": "#/definitions/NuWyreAuditLogEventV1",
+  "definitions": {
+    "NuWyreAuditLogEventV1": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "type": "number",
+          "const": 1
+        },
+        "event_id": {
+          "$comment": "UUID v5 deterministic identifier derived per §16.2 'event_id derivation' contract (v1.0.11 F4 + v1.0.12 F-SC-1/F-SC-2/F-SC-3 closures). Namespace UUID 7b6c5d4e-3a2b-5c4d-8e9f-0a1b2c3d4e5f; name input <organization_id>:<sequence_number>:<timestamp_unix_ns> with canonical decimal-ASCII sequence_number + lowercase RFC-4122 organization_id.",
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "event_type": {
+          "$comment": "Closed-vocabulary discriminator of the form 'audit-log:<category>:<verb>'. MUST NOT be a free-text description; PII discipline at §16.2.3. Pattern's minimum match length is 13 (audit-log: prefix + 1-char category + : + 1-char verb).",
+          "type": "string",
+          "pattern": "^audit-log:[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$"
+        },
+        "actor": {
+          "$ref": "#/definitions/NuWyreAuditLogEventV1/definitions/Actor"
+        },
+        "subject": {
+          "$ref": "#/definitions/NuWyreAuditLogEventV1/definitions/Subject"
+        },
+        "content_hash": {
+          "$comment": "SHA-256 of JCS(canonical_content_payload) per §16.2.1. Canonical content payload contains EXACTLY {actor: {type, id}, subject: {type, id, organization_id}, event_type} — strict-fields posture per v1.0.12 F-SC-4 closure.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "forensic": {
+          "$ref": "#/definitions/NuWyreAuditLogEventV1/definitions/Forensic"
+        }
+      },
+      "required": [
+        "schema_version",
+        "event_id",
+        "event_type",
+        "actor",
+        "subject",
+        "content_hash",
+        "forensic"
+      ],
+      "additionalProperties": false,
+      "definitions": {
+        "Actor": {
+          "$comment": "Audit-log event actor — who triggered the audited operation. actor.type is closed-vocabulary {user, admin, system, cron} per §16.2 'actor.type + subject.type closed vocabulary' (v1.0.12 F-SC-6 closure). actor.id MUST be opaque identifier (UUID for user/admin types; canonical system identifier like 'cron:<job-name>' for system/cron types) — MUST NOT be email/full-name/phone-number/other-PII per §16.2.3.",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["user", "admin", "system", "cron"]
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["type", "id"],
+          "additionalProperties": false
+        },
+        "Subject": {
+          "$comment": "Audit-log event subject — the entity acted upon. subject.type is closed-vocabulary {customer, user, api-key, policy-pack, admin-action, cross-tenant, system, cron} per §16.2 'actor.type + subject.type closed vocabulary' (v1.0.12 F-SC-6 closure). subject.organization_id is the customer's organization UUID for customer-scoped audit log events OR the all-zero sentinel UUID (00000000-0000-0000-0000-000000000000) per §16.5 for operator-only audit log events; per v1.0.12 F-SC-12 nullability — verifiers MUST tolerate null on subject.organization_id for any org-agnostic subject (e.g., built-in policy pack rows, cross-tenant subjects, global system resources). The anyOf permits null universally to match this prose; writer-side strictness is enforced by the platform layer, not by schema.",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "customer",
+                "user",
+                "api-key",
+                "policy-pack",
+                "admin-action",
+                "cross-tenant",
+                "system",
+                "cron"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "organization_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": ["type", "id", "organization_id"],
+          "additionalProperties": false
+        },
+        "Forensic": {
+          "$comment": "Audit-log chain-integrity fields per §16.2 + §16.2.2 chain-isolation contract. sequence_number is per-chain (per-(organization_id, bundle_subtype)) gap-free monotonic non-negative integer in range [0, 2^63-1] per v1.0.12 F-SC-11. event_hash derivation per §16.2.2 (v1.0.12 F-SC-5) uses the 4-field formula: SHA-256(JCS({prev_event_hash, content_hash, sequence_number, timestamp_unix_ns})). event_type + actor + subject are NOT in the event_hash pre-image — they are bound into event_hash via content_hash.",
+          "type": "object",
+          "properties": {
+            "timestamp_iso": {
+              "$comment": "ISO 8601 UTC second-precision (no fractional second; trailing Z). Time consistency invariant per audit_log_events CHECK at migration 20260523000000 + reinforced at 20260528000000 (Phase 7.A.1).",
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+            },
+            "timestamp_unix_ns": {
+              "$comment": "Decimal-ASCII nanosecond Unix epoch as a string (not number) — preserves full bigint precision across language boundaries (Go int64 / JS Number.MAX_SAFE_INTEGER bound at v1.0.12 F-SC-11). Per F-SC-1 prose: no leading zeros for positive values; the literal string '0' for zero; no sign prefix; no thousands separators. Pattern admits '0' to match F-SC-1 verbatim even though the post-2038 nanosecond epoch is far above zero in practice.",
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "sequence_number": {
+              "$comment": "Gap-free monotonically increasing non-negative integer per audit-log chain (per-(organization_id, bundle_subtype) chain isolation per §16.2.2). Range [0, 2^63-1] (Postgres bigserial ceiling) per §16.2 F-SC-11. JCS canonicalizes integers per RFC 8785 §3.2.2.3 (decimal ASCII; no leading zeros; no fractional). NO `maximum` constraint at the spec-level schema: Go (int64) / Rust (u64) / Java (long) writers handle the full [0, 2^63-1] range natively per F-SC-11 prose; baking a JS-specific 2^53-1 cap into the spec-level schema would have leaked NuWyre's TS-implementation constraint into the cross-language writer contract (Standards-Track Posture §1 'the moat is not the spec' violation). JS implementations MUST validate sequence_number <= Number.MAX_SAFE_INTEGER at the writer layer per F-SC-11 prose, NOT at the schema layer.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "prev_event_hash": {
+              "$comment": "64-char lowercase hex SHA-256. For the first event in each per-(organization_id, bundle_subtype) chain, MUST be the canonical GENESIS_PREV_HASH sentinel from §6.2 ('0' repeated 64 times).",
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "event_hash": {
+              "$comment": "SHA-256(JCS({prev_event_hash, content_hash, sequence_number, timestamp_unix_ns})) per §16.2.2 v1.0.12 F-SC-5 closure. 64-char lowercase hex.",
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "ingestion_signature": {
+              "$comment": "Per-event Ed25519 signature over the event_hash bytes (NOT the 64-char hex string; the 32-byte raw hash bytes). Base64-encoded signature; signing key per §5 KeyForBundle dispatch. Ed25519 signatures are always exactly 64 bytes → standard base64 is exactly 88 chars (86 base64 + mandatory '==' padding); the pattern enforces this strictly to match event-v1.schema.json's ingestion_signature contract verbatim.",
+              "type": "string",
+              "pattern": "^[A-Za-z0-9+/]{86}==$"
+            }
+          },
+          "required": [
+            "timestamp_iso",
+            "timestamp_unix_ns",
+            "sequence_number",
+            "prev_event_hash",
+            "event_hash",
+            "ingestion_signature"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

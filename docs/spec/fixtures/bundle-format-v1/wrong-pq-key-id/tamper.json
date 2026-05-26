@@ -1,0 +1,14 @@
+{
+  "fixture": "wrong-pq-key-id",
+  "description": "signature.sig.signatures[1].key_id substituted with attacker-supplied string 'issuer-evil-key-attempted-attack' while manifest.signing.signatures[1].key_id is preserved. Surfaces at Check 1 step 7 cross-check (c): b.Signature.Signatures[i].KeyID != b.Manifest.Signing.Signatures[i].KeyID. Short-circuits BEFORE crypto verification via failV2; both algorithm_verdicts emit as fail per spec §18.10.",
+  "modifications": [
+    {
+      "file": "signature.sig",
+      "mutation": "signatures[1].key_id changed from 'issuer-dev-v2-ml-dsa-65' to 'issuer-evil-key-attempted-attack' (manifest.signing.signatures[1].key_id unchanged).",
+      "rationale": "Spec §18.7 step 2 mandates signature.sig and manifest.signing agree on key_id per algorithm. A tampered signature.sig that disagrees with manifest.signing is a tampering signal detected BEFORE cryptographic verification."
+    }
+  ],
+  "expected_failures": [
+    "check 1 (manifest signature): cross-check fails at step 7 — signatures[1].key_id 'issuer-evil-key-attempted-attack' disagrees with manifest.signing.signatures[1].key_id 'issuer-dev-v2-ml-dsa-65'. algorithm_verdicts cardinality 2 with both fail (failV2 short-circuit per spec §18.10 conformance contract)."
+  ]
+}

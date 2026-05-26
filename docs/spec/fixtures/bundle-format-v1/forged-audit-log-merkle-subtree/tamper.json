@@ -1,0 +1,19 @@
+{
+  "fixture": "forged-audit-log-merkle-subtree",
+  "description": "audit_log_subtree.json sibling proof hex byte flipped in a leaf-to-root proof path. Primary event subtree (merkle_proofs.json) untouched. The mutation surfaces as Check 4 failure for the audit log subtree only (primary event subtree still passes Check 4), plus Check 9 dual-subtree composition mismatch.",
+  "v1010_amendment": "Phase 6.2.A spec amendment 2026-05-15 audit-log-export bundle type. bundle.zip generation deferred to Phase 6.2.B implementation session per Decision 5 (minimum viable scope).",
+  "modifications": [
+    {
+      "file": "audit_log_subtree.json",
+      "mutation": "First proof's first sibling_hash last hex character flipped (deterministic 0↔1, 2↔3, ..., e↔f).",
+      "rationale": "Single sibling-hash mutation breaks the audit log subtree's leaf-to-root proof walk for at least one event; walked subtree root differs from the declared subtree_root field. Primary event subtree merkle proofs are unaffected (Check 4 for events.jsonl still passes); Check 9 dual-subtree composition then fails because audit_log_subtree_root recomputed from walked leaves doesn't equal the declared audit_log_root in manifest.merkle_subtrees."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): audit_log_subtree.json declared SHA-256 in manifest.artifacts[] no longer matches computed SHA-256 of mutated bytes.",
+    "check 9 (audit-log-merkle): audit_log_subtree.json proofs[0] walked Merkle root from mutated sibling path does not equal manifest.merkle_subtrees.audit_log_root."
+  ],
+  "notes": [
+    "Phase 7.D session 89 reconciliation: per session-88 Go-side closure (A.1.3), Check 4 does NOT fail on this tamper. Check 4 verifies events subtree root which is empty/zero for audit-log-export bundles per dual-subtree composition; audit-log subtree integrity verification was moved to Check 9. Primary event subtree (merkle_proofs.json) is untouched and Check 4 over the events subtree still passes (the events_root is zero/empty); Check 3 is skipped for audit-log-export with empty events.jsonl. This fixture exercises the v1.0.10-specific dual-subtree composition failure path: audit-log subtree integrity lives at Check 9, distinct from events subtree integrity at Check 4."
+  ]
+}

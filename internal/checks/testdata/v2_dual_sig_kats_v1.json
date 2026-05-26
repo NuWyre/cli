@@ -1,0 +1,53 @@
+{
+  "$comment": "Phase 7.F.5 session 103 closure: KAT golden vectors for v2.0.0 dual-signature cross-language byte-equivalence. SOURCE OF TRUTH is packages/evidence/src/v2-dual-sig-kats.test.ts (matching the audit-log KAT pattern at packages/evidence/tests/audit-log-export.test.ts:564-650). This file pins the byte-precise outputs Go-side primitives MUST recompute exactly. If any value below drifts from the TS golden vector, the cross-language contract has BROKEN and the cause must be investigated — NOT just snapshot-updated. Per spec §18.3 (FIPS 204 deterministic-variant) + §18.4 (canonical SPKI byte construction + signature byte format).",
+  "spec_version_pinned_at": "v2.0.0",
+  "vectors_unchanged_since": "v2.0.0",
+  "source_of_truth": "packages/evidence/src/v2-dual-sig-kats.test.ts",
+  "kats_skipped": {
+    "v2-signature.sig JCS canonicalization": "WRITER-SIDE primitive; Go verifier consumes signature.sig as bytes-as-loaded (no recanonicalization at verify-time per check1_v2_dual_sig.go bytes-as-loaded posture). Cross-language byte-equivalence at the JCS-canonical-bytes layer is covered transitively by the 27-fixture conformance suite (Go verifier reads TS-emitted bundle.zips and Check 1 verifies; if JCS canonicalize diverged TS↔Go, the signatures wouldn't verify).",
+    "v2-manifest.json JCS canonicalization": "Same rationale as signature.sig — writer-side primitive; verifier consumes raw bytes. Conformance fixtures cover transitively.",
+    "Ed25519 SPKI wrapping": "Go uses x509.MarshalPKIXPublicKey + x509.ParsePKIXPublicKey via stdlib (well-tested across Go versions). TS uses Node createPrivateKey/createPublicKey.export({format:'der',type:'spki'}). Both produce RFC 5280-conformant Ed25519 SPKI; no cross-language byte-drift risk warranting a KAT vector here (in contrast to ML-DSA-65 SPKI which requires custom byte-construction per spec §18.4)."
+  },
+  "pinned_inputs": {
+    "test_seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "test_seed_hex_comment": "Synthesized 32-byte test seed (bytes 0x00-0x1F in sequence; intentionally non-random + obviously test-vector). Both Ed25519 (RFC 8032 §5.1.5) + ML-DSA-65 (FIPS 204 §6.2) take 32-byte seeds; same seed bytes generate ALGORITHMICALLY DISTINCT keypairs.",
+    "test_message_hex": "00112233445566778899aabbccddeeff0011223344556677889900112233ffff",
+    "test_message_hex_comment": "Synthesized 32-byte test message. Pinned to enable both TS + Go to derive byte-identical deterministic signatures per RFC 8032 §5.1.6 (Ed25519) + FIPS 204 §6.2 deterministic-variant (ML-DSA-65)."
+  },
+  "vectors": {
+    "KAT-V2-1": {
+      "description": "ML-DSA-65 keygen-from-seed: derives the 1952-byte raw public key + 1974-byte canonical SPKI DER per spec §18.4. TS computes via @noble/post-quantum keygenFromSeed + wrapPublicKeySpki + encodeSpkiB64. Go computes via cloudflare/circl mldsa65.NewKeyFromSeed + MarshalBinary(publicKey) + keys.MlDsa65SPKIPrefix concatenation. Cross-language byte-equivalence: SHA-256 of raw pubkey + SHA-256 of SPKI MUST match exactly.",
+      "input": {
+        "seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      "expected_raw_pub_sha256": "d666806e11cee19a7c989f7445f90dd419cf4d2d51db8c0fdb4c0f0a542238c9",
+      "expected_raw_pub_byte_length": 1952,
+      "expected_spki_sha256": "b8b62131bfbe84433efb2273d7f5b87f7a22854a2cfd366fc2aead86d837c52d",
+      "expected_spki_byte_length": 1974,
+      "expected_spki_prefix_first22_hex": "308207b2300b0609608648016503040312038207a100",
+      "expected_spki_prefix_first22_hex_comment": "The 22-byte canonical SPKI prefix per spec §18.4 worked construction. MUST match keys.MlDsa65SPKIPrefix byte-for-byte (any drift = cross-language SPKI divergence)."
+    },
+    "KAT-V2-2": {
+      "description": "ML-DSA-65 FIPS 204 §6.2 deterministic-variant signature over TEST_MESSAGE. TS computes via signDeterministic(message, secretKey). Go computes via mldsa65.SignTo(sk, msg, nil, false, sig) where the 4th arg false = randomized=false = deterministic-variant. Spec §18.3 pins deterministic-variant for v2.0.0 (rnd=32 zero bytes; ctx=empty). Cross-language byte-equivalence: the SHA-256 of the 3309-byte signature MUST match exactly.",
+      "input": {
+        "seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "message_hex": "00112233445566778899aabbccddeeff0011223344556677889900112233ffff"
+      },
+      "expected_sig_sha256": "047cc486867498a6154f2b2de425b5d7dabcc100676bcff971f227289cbc90a1",
+      "expected_sig_byte_length": 3309,
+      "expected_sig_byte_length_comment": "FIPS 204 §4 Table 1 final (August 2024) mandates ML-DSA-65 signatures are EXACTLY 3309 bytes. Pre-finalization Dilithium3 academic implementations produced 3293 bytes (spec §18.4 line 2369 documents this as a non-conformance vector)."
+    },
+    "KAT-V2-3": {
+      "description": "Ed25519 deterministic signature per RFC 8032 §5.1.6 over TEST_MESSAGE using a key derived from TEST_SEED. TS derives via Node createPrivateKey({key: pkcs8DerWithSeed, format:'der', type:'pkcs8'}) + cryptoSign(null, msg, key). Go derives via ed25519.NewKeyFromSeed(seed) + ed25519.Sign(privKey, msg). Cross-language byte-equivalence: the 64-byte signature hex MUST match exactly.",
+      "input": {
+        "seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "message_hex": "00112233445566778899aabbccddeeff0011223344556677889900112233ffff"
+      },
+      "expected_pub_spki_hex": "302a300506032b657003210003a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "expected_pub_spki_hex_comment": "44-byte RFC 5280 SPKI DER for Ed25519 (12-byte AlgorithmIdentifier prefix + 32-byte raw public key).",
+      "expected_sig_hex": "511a3f101f54723f0cb38f1847b9846944890104be5c56af0cedbe26bf77e4f3e5979629fda158afb948c7d913a6dc653ebc00c87e1befc56c44c32ae6789507",
+      "expected_sig_sha256": "5c93d22019e3a4efba84a5e36217bbd23c695ca13fefd7b5a4dba12b05e136b2",
+      "expected_sig_byte_length": 64
+    }
+  }
+}

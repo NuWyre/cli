@@ -1,0 +1,17 @@
+{
+  "fixture": "forged-rfc3161-chain",
+  "description": "First RFC 3161 cert chain (.chain.pem) has one character in the first cert body mutated (stays within base64 alphabet so PEM parses; cert signature or chain link breaks for THAT TSA).",
+  "modifications": [
+    {
+      "file": "<first rfc3161_receipts/*.chain.pem>",
+      "mutation": "First non-BEGIN/END/empty line, character at offset 10, flipped within base64 alphabet (A→B, a→b, 0→1, '+'↔'/').",
+      "rationale": "Documents V1 verifier behavior under single-TSA chain tamper: check 2 catches the file SHA mismatch; check 6 does NOT (≥2 of 3 TSAs still verify, satisfying spec §11.1)."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): .chain.pem file SHA-256 mismatch."
+  ],
+  "notes": [
+    "V1 verifier does NOT fail check 6 on this fixture (same multi-TSA tolerance as forged-rfc3161)."
+  ]
+}

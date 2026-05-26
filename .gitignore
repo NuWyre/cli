@@ -1,0 +1,20 @@
+# Build artifacts
+bin/
+coverage/
+*.test
+*.out
+*.exe
+
+# WASM build artifacts — produced by `make wasm` (Phase 5.5 Session 5.5.1B).
+# nuwyre.wasm is 14MB raw / 3.9MB gzipped; wasm_exec.js is a copy from
+# $(go env GOROOT)/lib/wasm/. Both are output of the build pipeline,
+# not committed source. The /verify route's deploy pipeline rebuilds
+# them fresh from cmd/nuwyre-wasm/main.go (Session 5.5.1C).
+web/
+
+# Go workspace caches
+.turbo/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db

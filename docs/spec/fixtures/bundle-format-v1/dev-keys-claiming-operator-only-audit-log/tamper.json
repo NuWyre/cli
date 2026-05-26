@@ -1,0 +1,15 @@
+{
+  "fixture": "dev-keys-claiming-operator-only-audit-log",
+  "description": "v2.0.0-rc1 operator-only audit-log-export bundle structurally valid + signed with DEV keys (issuer-dev-v2-ed25519 + issuer-dev-v2-ml-dsa-65). Spec section 18.6 audit-log clause + security-auditor H1 closure: operator-only audit-log signed with dev keys MUST surface Check 1 dev_key warn ELEVATED TO FAIL (not foldable via --allow-dev-key). Operator-only audit-log subtype carries SOC 2 + regulatory-inquiry-response evidence weight per section 16.1; dev-slot signature on operator-only evidence is a red flag for leaked-dev-key-claiming-prod-evidence attack.",
+  "modifications": [
+    {
+      "file": "(generated as valid operator-only bundle; not a mutation of customer-scoped baseline)",
+      "mutation": "bundle_subtype=operator-only + organization_id=00000000-0000-0000-0000-000000000000 + agent_attestation_id=00000000-0000-0000-0000-000000000000 (all-zero sentinel UUIDs per spec v1.0.12 section 16.5). 5-event audit-log chain with cross-tenant/system/cron-typed subjects (operator-only-appropriate; no customer org binding per section 16.5 contrapositive). Dual-signed with dev v2 keys.",
+      "rationale": "Spec section 18.6 audit-log clause + security-auditor H1 closure: operator-only audit-log carries elevated evidence weight; dev-slot signature is the attack scenario. Verifier MUST elevate dev_key warn to fail (not foldable) so --allow-dev-key flag cannot silently accept this attack."
+    }
+  ],
+  "expected_failures": [
+    "check 1 (manifest signature): operator-only audit-log-export bundle signed with development keys; spec section 18.6 audit-log clause + security-auditor H1 closure ELEVATE dev_key warn to fail (not foldable via --allow-dev-key). algorithm_verdicts cardinality 2 with both pass (crypto verifies); Check 1 overall status fail because of the policy-layer elevation, NOT crypto-layer failure."
+  ],
+  "$comment": "Session 102 promotion-gate update: spec section 18.6 audit-log clause elevation now implemented in apps/cli/internal/checks/check1_v2_dual_sig.go step 10. expected_failures dual-line documentation collapsed to single line reflecting current = spec-correct behavior. Recurring-defect-class memory n=21+ closure event."
+}

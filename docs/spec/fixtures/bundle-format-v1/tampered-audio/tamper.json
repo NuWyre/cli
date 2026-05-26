@@ -1,0 +1,14 @@
+{
+  "fixture": "tampered-audio",
+  "description": "First audio file (audio/<sha256>.<ext>) has one byte at the midpoint XOR'd with 0x01. SHA-256 of file changes; manifest's declared SHA-256 stays the same.",
+  "modifications": [
+    {
+      "file": "audio/6f34baca370c0e69bb146220c7677b9614800887dd8a4cb52218dbbb032c335c.wav",
+      "mutation": "Byte at index floor(length/2) XOR'd with 0x01.",
+      "rationale": "Mid-file mutation avoids leading-bytes parsers; SHA-256 still changes deterministically. Check 2 iterates manifest.artifacts and detects the per-file SHA mismatch."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): audio/<sha256>.<ext> SHA-256 declared in manifest no longer matches computed SHA-256 of mutated bytes."
+  ]
+}

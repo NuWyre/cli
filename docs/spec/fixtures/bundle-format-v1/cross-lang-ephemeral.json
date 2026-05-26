@@ -1,0 +1,11 @@
+{
+  "$comment": "Cross-language byte-equivalence fixture for spec §6.5 ephemeral-session signing. Emitted by apps/api/src/lib/__tests__/session-signing.test.ts; consumed by apps/cli/internal/checks/check8_ephemeral_session_test.go. Pre-Phase 6 Item 2 closure 2026-05-15. Do not hand-edit; re-run `pnpm --filter @nuwyre/api test session-signing` to regenerate.",
+  "hkdf_info": "nuwyre/v1.0.9-ephemeral-session-key",
+  "session_seed_bytes_b64": "eyJrZXlfaWQiOiJpc3N1ZXItZGV2LXYxIiwic2NoZW1hX3ZlcnNpb24iOjEsInNlc3Npb25faWQiOiJjY2NjY2NjYy1jY2NjLTRjY2MtOGNjYy1jY2NjY2NjY2NjY2MiLCJzdGFydGVkX2F0X25zIjoiMTcwMDAwMDAwMDAwMDAwMDA5OSJ9",
+  "kms_attestation_b64": "6kHZ4dpcXUdUoMY3gfYWEPGl1WX8pfQIbaUvuM74rDeyTc2o4mKvMxRFPuDd+gj8v6720QpoQUV+G3CxokhtCQ==",
+  "pinned_kms_public_key_b64": "SAdaWX5yGhVuLgeZ3lzAxTJNxufq8c3UYlCGjsUyFd0=",
+  "pinned_kms_spki_b64": "MCowBQYDK2VwAyEASAdaWX5yGhVuLgeZ3lzAxTJNxufq8c3UYlCGjsUyFd0=",
+  "expected_ephemeral_spki_b64": "MCowBQYDK2VwAyEAeVp1zG8Thymd73kCd2wMXptTNK3og3k5G9mafqueRcc=",
+  "sample_event_hash_b64": "3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0=",
+  "sample_event_signature_b64": "15tzEzd2GKp9/Ti2AYvYf0KTEsmKOEpR1YWSAKIHCcp8wH4k5KtGQmCQuN/Sgm8sfNb+eonumj2kPZc0+NE2Bg=="
+}

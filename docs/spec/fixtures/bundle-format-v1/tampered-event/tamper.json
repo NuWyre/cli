@@ -1,0 +1,16 @@
+{
+  "fixture": "tampered-event",
+  "description": "First event's stored forensic.event_hash byte mutated by flipping the last hex character. The mutation cascades into checks 2/3/4.",
+  "modifications": [
+    {
+      "file": "events.jsonl",
+      "mutation": "Line 1 event.forensic.event_hash last hex character flipped (deterministic 0↔1, 2↔3, ..., e↔f).",
+      "rationale": "Stored event_hash is the merkle leaf (check 4) AND the chain target (check 3). Mutation surfaces in both checks simultaneously. The events.jsonl file's SHA-256 also changes (check 2)."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): events.jsonl SHA-256 declared in manifest no longer matches computed SHA-256 of mutated bytes.",
+    "check 3 (hash chain): the next event in the same session has prev_event_hash referring to the ORIGINAL event_hash; recomputed chain breaks at the mutated event.",
+    "check 4 (merkle proof): the mutated event_hash is the merkle leaf for proofs[0]; walked root differs from manifest.daily_root."
+  ]
+}

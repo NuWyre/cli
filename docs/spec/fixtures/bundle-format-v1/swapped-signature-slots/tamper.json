@@ -1,0 +1,13 @@
+{
+  "fixture": "swapped-signature-slots",
+  "description": "signatures[0] (Ed25519) and signatures[1] (ML-DSA-65) ENTIRE entries swapped in signature.sig. Spec section 18.8 positional invariant violation. Surfaces at Check 1 step 1d positional algorithm pin via failV2 short-circuit; both algorithm_verdicts emit as fail per spec section 18.10.",
+  "modifications": [
+    {
+      "file": "signature.sig",
+      "mutation": "signatures[0] and signatures[1] entries swapped; signatures[0].algorithm is now ml-dsa-65 instead of ed25519. Re-emitted via RFC 8785 JCS canonical key ordering (matches writer emission)."
+    }
+  ],
+  "expected_failures": [
+    "check 1 (manifest signature): positional invariant violated at step 1d -- signatures[0].algorithm = ml-dsa-65, expected ed25519 per spec section 18.8. algorithm_verdicts cardinality 2 with both fail (failV2 short-circuit per spec section 18.10)."
+  ]
+}

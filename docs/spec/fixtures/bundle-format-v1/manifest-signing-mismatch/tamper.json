@@ -1,0 +1,14 @@
+{
+  "fixture": "manifest-signing-mismatch",
+  "description": "First base64 character of signature.sig.signatures[1].key_fingerprint_spki_b64 (ML-DSA-65 SPKI) deterministically flipped while manifest.signing.signatures[1].key_fingerprint_spki_b64 is preserved. Surfaces at Check 1 step 7(b) cross-check via failV2 short-circuit; both algorithm_verdicts emit as fail per spec section 18.10.",
+  "modifications": [
+    {
+      "file": "signature.sig",
+      "mutation": "signatures[1].key_fingerprint_spki_b64 first base64 character flipped (M to N alphabet rotation); manifest.signing.signatures[1].key_fingerprint_spki_b64 unchanged.",
+      "rationale": "Spec section 18.7 step 2 mandates signature.sig and manifest.signing agree on key_fingerprint_spki_b64 per algorithm. A tampered signature.sig that disagrees with manifest.signing is a tampering signal detected BEFORE cryptographic verification."
+    }
+  ],
+  "expected_failures": [
+    "check 1 (manifest signature): cross-check fails at step 7(b) -- signatures[1].key_fingerprint_spki_b64 disagrees with manifest.signing.signatures[1].key_fingerprint_spki_b64. algorithm_verdicts cardinality 2 with both fail (failV2 short-circuit per spec section 18.10)."
+  ]
+}

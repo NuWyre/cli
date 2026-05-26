@@ -1,0 +1,15 @@
+{
+  "fixture": "mismatched-github",
+  "description": "github_anchors/<date>.json is mutated: mirror_status changed from 'anchor-pending' to 'anchored' with a zeroed-out commit_sha. The fictional 'anchored' claim no longer matches the actual NuWyre/anchors repository state.",
+  "modifications": [
+    {
+      "file": "github_anchors/2026-04-22.json",
+      "mutation": "mirror_status: 'anchor-pending' → 'anchored'; commit_sha: null → '0000000000000000000000000000000000000000'; commit_sha_format: ensure 'sha1' present.",
+      "rationale": "An 'anchored' claim with a zeroed-out commit_sha is verifiable against the actual NuWyre/anchors repo state (commit doesn't exist there). Check 7 surfaces the mismatch. The file's SHA-256 also changes (check 2)."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): github_anchors/<date>.json SHA-256 mismatch in manifest.",
+    "check 7 (GitHub anchor): claimed commit_sha not present in NuWyre/anchors repo at the declared path (network-dependent)."
+  ]
+}

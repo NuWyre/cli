@@ -1,0 +1,14 @@
+{
+  "fixture": "tampered-ml-dsa-sig",
+  "description": "First base64 character of signature.sig.signatures[1].signature_b64 (ML-DSA-65 sig) deterministically flipped. Surfaces at Check 1 verifyMlDsa65Leg crypto verify (step 9); Ed25519 leg runs at step 8 + passes.",
+  "modifications": [
+    {
+      "file": "signature.sig",
+      "mutation": "signatures[1].signature_b64 first base64 character flipped (alphabet pairwise rotation).",
+      "rationale": "ML-DSA-65 signature bytes change → cryptographic verification fails. The base64 string length + shape are unchanged so length-check + base64-decode both still succeed; only mldsa65.Verify fails."
+    }
+  ],
+  "expected_failures": [
+    "check 1 (manifest signature): ML-DSA-65 verification fails against pinned issuer-dev-v2-ml-dsa-65 key. algorithm_verdicts[0]={ed25519, pass}; algorithm_verdicts[1]={ml-dsa-65, fail} per spec §18.10 (Ed25519 leg runs first + passes)."
+  ]
+}

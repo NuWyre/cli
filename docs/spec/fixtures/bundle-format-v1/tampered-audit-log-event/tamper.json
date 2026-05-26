@@ -1,0 +1,19 @@
+{
+  "fixture": "tampered-audit-log-event",
+  "description": "First audit log event's stored forensic.event_hash byte mutated by flipping the last hex character. Audit log chain is structurally identical to primary event chain; the mutation cascades into Checks 2, 3 (audit log chain), 4 (audit log subtree merkle), and 9 (audit-log-merkle dual-subtree composition).",
+  "v1010_amendment": "Phase 6.2.A spec amendment 2026-05-15 audit-log-export bundle type. bundle.zip generation deferred to Phase 6.2.B implementation session per Decision 5 (minimum viable scope).",
+  "modifications": [
+    {
+      "file": "audit_log_events.jsonl",
+      "mutation": "Line 1 audit-log-event.forensic.event_hash last hex character flipped (deterministic 0↔1, 2↔3, ..., e↔f).",
+      "rationale": "Stored audit log event_hash is (a) the audit log merkle leaf (Check 4 over audit_log_subtree), (b) the audit log chain target (Check 3 over audit log chain), and (c) a component of the dual-subtree composition that produces manifest.daily_root via §16.3 SHA-256(events_subtree_root || audit_log_subtree_root). Mutation surfaces in all three checks simultaneously plus Check 2 (audit_log_events.jsonl file SHA-256 differs from declared)."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): audit_log_events.jsonl declared SHA-256 in manifest.artifacts[] no longer matches computed SHA-256 of mutated bytes.",
+    "check 9 (audit-log-merkle): audit_log_events.jsonl line 1 recomputed event_hash from event bytes does not match declared forensic.event_hash; the audit log chain target was tampered."
+  ],
+  "notes": [
+    "Phase 7.D session 89 reconciliation: per session-88 Go-side closures (A.1.2 + A.1.3), Check 3 + Check 4 do NOT fail on this tamper. Check 3 is skipped for audit-log-export bundles with empty events.jsonl per spec §16.2.2 + §16.3.1 (audit-log chain integrity verification was moved to Check 9). Check 4 verifies events subtree root which is empty/zero for audit-log-export bundles per dual-subtree composition; the audit_log_subtree_root mutation is detected at Check 9 not Check 4. Original v1.0.10 amendment text predates these Go-side bundle_type awareness extensions."
+  ]
+}

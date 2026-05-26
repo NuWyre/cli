@@ -1,0 +1,51 @@
+{
+  "$comment": "Phase 6.4 session 76 BACKLOG 1.36 closure: KAT golden vectors for audit-log-export cross-language byte-equivalence. SOURCE OF TRUTH is packages/evidence/tests/audit-log-export.test.ts:564-650 (KAT-1, KAT-1b, KAT-2, KAT-3, KAT-4, KAT-5). This file pins KAT-2 (content_hash), KAT-3 (event_hash), and KAT-5 (dual_subtree_daily_root) for Go-side consumer verification. KAT-1/1b skipped (Go side has no event_id derivation primitive — that's a writer-side concern). KAT-4 skipped at first cut (subtree_root requires Go-side buildAuditLogSubtree primitive which doesn't exist; Go verifier validates pre-built proofs at Check 9). If any value below drifts from the TS golden vector, the cross-language contract has BROKEN and the cause must be investigated — NOT just snapshot-updated.",
+  "spec_version_pinned_at": "v1.0.16",
+  "vectors_unchanged_since": "v1.0.11",
+  "source_of_truth": "packages/evidence/tests/audit-log-export.test.ts:564-650",
+  "kats_skipped": {
+    "KAT-1": "deriveAuditLogEventId(org, seq=0, ts) — UUID v5 derivation is a WRITER-SIDE primitive; verifier consumes event_id as opaque UUID and validates UUID-shape via the regex check (no recomputation). A third-party implementer writing a verifier would skip KAT-1 identically.",
+    "KAT-1b": "deriveAuditLogEventId(org, seq=42, ts) — see KAT-1 rationale.",
+    "KAT-4": "buildAuditLogSubtree(events, …) — subtree-root construction is a WRITER-SIDE primitive; the verifier validates a pre-built subtree via Merkle proof walks (Check 9 sections 4-7) and dual-subtree composition (KAT-5 below). Coverage transitively via conformance-test fixtures (Go verifier reads a TS-generated bundle and Check 9 passes). Future BACKLOG: Go-side buildAuditLogSubtree primitive + KAT-4 consumer test for defense-in-depth on dual-subtree."
+  },
+  "kat_inputs": {
+    "organization_id": "a7c3e8f1-1234-4abc-89ab-1234567890ab",
+    "timestamp_unix_ns": "1715760000000000000",
+    "actor_id": "00000000-0000-4000-8000-000000000001",
+    "subject_id": "00000000-0000-4000-8000-000000000002",
+    "genesis_sentinel_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "vectors": {
+    "KAT-2": {
+      "description": "computeAuditLogContentHashGo({actor, event_type, subject}) matches TS computeAuditLogContentHash",
+      "input": {
+        "actor": { "type": "admin", "id": "00000000-0000-4000-8000-000000000001" },
+        "event_type": "audit-log:api-key:rotated",
+        "subject": {
+          "type": "api-key",
+          "id": "00000000-0000-4000-8000-000000000002",
+          "organization_id": "a7c3e8f1-1234-4abc-89ab-1234567890ab"
+        }
+      },
+      "expected_content_hash_hex": "f80a905a761884e2cfd14b20e7176d553eaea0f665b35abcebc9b7068a02112a"
+    },
+    "KAT-3": {
+      "description": "computeEventHashGo(prev=genesis, content_hash=KAT-2, seq=0, ts) matches TS computeAuditLogEventHash",
+      "input": {
+        "prev_event_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "content_hash": "f80a905a761884e2cfd14b20e7176d553eaea0f665b35abcebc9b7068a02112a",
+        "sequence_number": 0,
+        "timestamp_unix_ns": "1715760000000000000"
+      },
+      "expected_event_hash_hex": "76f4afe5d58af49470876cbc0cbfd2b684f4e4ffe7d410165ffdd6d4936e9655"
+    },
+    "KAT-5": {
+      "description": "computeDualSubtreeComposition(events_root=ffff…, audit_log_root=KAT-4 subtree) matches TS computeDualSubtreeDailyRoot",
+      "input": {
+        "events_subtree_root": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "audit_log_subtree_root": "ef3d1ef2d510dd38c1f8b5519f30d06cfc3a76c1b3ec71fc2aa8d5310e51e077"
+      },
+      "expected_daily_root_hex": "80c3d943bae5badb5f495e1cd1e8109dba4204e408b4483a23b043d9e1b7e561"
+    }
+  }
+}

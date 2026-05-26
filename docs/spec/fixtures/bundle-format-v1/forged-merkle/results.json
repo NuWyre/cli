@@ -1,0 +1,105 @@
+{
+  "output_format_version": "1",
+  "verdict": "fail",
+  "exit_code": 1,
+  "reason": "(implementation-specific; ignored by conformance contract)",
+  "checks": [
+    {
+      "check_id": 1,
+      "check_name": "manifest signature",
+      "check_slug": "manifest-signature",
+      "status": "warn",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 2,
+      "check_name": "artifact integrity",
+      "check_slug": "artifact-integrity",
+      "status": "fail",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 3,
+      "check_name": "hash chain",
+      "check_slug": "hash-chain",
+      "status": "pass",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 4,
+      "check_name": "Merkle proof",
+      "check_slug": "merkle-proof",
+      "status": "fail",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 5,
+      "check_name": "OpenTimestamps Bitcoin anchor",
+      "check_slug": "opentimestamps",
+      "status": "warn",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 6,
+      "check_name": "RFC 3161 timestamp anchor",
+      "check_slug": "rfc3161",
+      "status": "warn",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 7,
+      "check_name": "GitHub anchor cross-check",
+      "check_slug": "github",
+      "status": "warn",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 8,
+      "check_name": "ephemeral session",
+      "check_slug": "ephemeral-session",
+      "status": "skipped",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "bundle uses single-key signing topology; ephemeral-session attestation not applicable",
+      "duration_ms": 0
+    },
+    {
+      "check_id": 9,
+      "check_name": "audit-log Merkle",
+      "check_slug": "audit-log-merkle",
+      "status": "skipped",
+      "errors": [],
+      "warnings": [],
+      "skip_reason": "",
+      "duration_ms": 0
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 2,
+    "warned": 3,
+    "skipped": 0,
+    "warns_opted_into_pass": 3
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nuwyre.com/spec/fixtures/bundle-format-v1/results.schema.json",
+  "title": "Bundle Format v1 Conformance Fixture Result",
+  "description": "The shape a conformant verifier MUST produce when run against a fixture's bundle.zip with the declared verification_options. Equivalent to the native CLI's --json output (output.JSONOutput; output_format_version='1'). Per-fixture results.json files conform to this schema.",
+  "type": "object",
+  "required": [
+    "output_format_version",
+    "verdict",
+    "exit_code",
+    "reason",
+    "checks",
+    "summary"
+  ],
+  "properties": {
+    "output_format_version": {
+      "type": "string",
+      "const": "1",
+      "description": "Stable version of the output schema. CI parsers MUST verify this is '1' and fail loudly on any other value rather than silently accept v2+ output."
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["pass", "fail", "partial_verification"],
+      "description": "Overall verdict per spec §14 aggregate semantics. 'partial_verification' surfaces incomplete state (warns without opt-in flag OR skips without --offline)."
+    },
+    "exit_code": {
+      "type": "integer",
+      "enum": [0, 1],
+      "description": "Process exit code. 0 = pass; 1 = fail or partial_verification. 2 (invocation error) is out of scope for results.json — it would mean the verifier rejected the inputs before running checks."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Operator-readable rationale. Implementation-specific natural-language text; conformance comparison IGNORES this field's value (only the structural fields above + per-check status + summary counts are compared)."
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 8,
+      "description": "Per-check verdict array in spec §14 order. Length depends on manifest.signing.topology (spec §5 v1.0.9 amendment): exactly 7 entries (check_id 1..7) under single-key topology (legacy + customer-export + example-demo); exactly 8 entries (check_id 1..7 + check_id 8 ephemeral-session) under ephemeral-sessions topology (sandbox-preview at v1.0.9). v1.0.7 conformance fixtures use length 7; v1.0.9 sandbox-preview ephemeral fixtures use length 8.",
+      "items": {
+        "type": "object",
+        "required": [
+          "check_id",
+          "check_slug",
+          "status",
+          "errors",
+          "warnings",
+          "skip_reason",
+          "duration_ms"
+        ],
+        "properties": {
+          "check_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8,
+            "description": "Spec §14 check number. Stable across releases — CI integrations match on this. v1.0.9 amendment raised the maximum to 8 (Check 8 ephemeral-session; conditional under ephemeral-sessions topology)."
+          },
+          "check_name": {
+            "type": "string",
+            "description": "Short human-readable label ('manifest signature', 'artifact integrity', etc.). Optional; MAY be omitted by a conformant verifier. MAY evolve across releases; do not match on this. (Dropped from required at Phase 5.5 Session 5.5.1B fix-up batch per spec-conformance-reviewer finding #14 — check_name was inconsistently treated as both 'implementation-localized' and 'required', resolved by making it optional.)"
+          },
+          "check_slug": {
+            "type": "string",
+            "enum": [
+              "manifest-signature",
+              "artifact-integrity",
+              "hash-chain",
+              "merkle-proof",
+              "opentimestamps",
+              "rfc3161",
+              "github",
+              "ephemeral-session"
+            ],
+            "description": "Stable lowercase slug. CI integrations match on this OR on check_id. These slugs match the canonical Slug() returns in apps/cli/internal/checks/check*_*.go and are the conformance-stable identifiers across all implementations. v1.0.9 amendment added 'ephemeral-session' (check_id 8; sandbox-preview ephemeral-sessions topology only)."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pass", "fail", "warn", "skipped"],
+            "description": "Per-check outcome. Conformance comparison matches on this field exactly."
+          },
+          "warn_category": {
+            "type": "string",
+            "enum": ["dev_key", "pending_ots", "anchor_pending", "tsa_surplus", ""],
+            "description": "Spec §14.4 (v1.0.7) structured warn-fold category. Populated by v1.0.7+ verifiers when Status='warn' and the warn matches an opt-in category; empty string otherwise. Optional (additive in v1.0.7; pre-v1.0.7 verifier output may omit). Conformance comparison ignores this field's value — it's a forward-progress field that v1.0.7+ implementations emit but the contract validates via summary.warns_opted_into_pass."
+          },
+          "errors": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Specific errors when status='fail'. Always emitted as an array (empty when no errors). Conformance comparison IGNORES this field's contents — verifiers may emit different natural-language strings."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Operationally meaningful warnings (pending OTS, placeholder prod key, etc.). Always emitted as an array (empty when no warnings). Conformance comparison IGNORES this field's contents."
+          },
+          "skip_reason": {
+            "type": "string",
+            "description": "Human-readable explanation when status='skipped'. Always emitted as a string (empty when not skipped). Conformance comparison IGNORES this field's contents."
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Wall-clock duration in milliseconds. Conformance comparison IGNORES this field — varies per run."
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["passed", "failed", "warned", "skipped", "warns_opted_into_pass"],
+      "properties": {
+        "passed": {"type": "integer", "minimum": 0, "maximum": 8},
+        "failed": {"type": "integer", "minimum": 0, "maximum": 8},
+        "warned": {"type": "integer", "minimum": 0, "maximum": 8},
+        "skipped": {"type": "integer", "minimum": 0, "maximum": 8},
+        "warns_opted_into_pass": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8,
+          "description": "Count of warns folded into passed via --allow-pending-ots / --allow-anchor-pending / --allow-dev-key. Subset of 'passed'."
+        }
+      },
+      "description": "Per-bucket counts. **Summary arithmetic** (per apps/cli/internal/checks/aggregate.go): `passed` MUST equal `(count of checks[] entries with status='pass') + warns_opted_into_pass`; `warned` MUST equal `(count of checks[] entries with status='warn') - warns_opted_into_pass`. The sum `passed + failed + warned + skipped` MUST equal `len(checks)` — 7 for single-key topology bundles, 8 for ephemeral-sessions topology bundles (spec §5 v1.0.9 amendment). `warns_opted_into_pass` is the count of WARN-status checks folded INTO `passed` via --allow-pending-ots / --allow-anchor-pending / --allow-dev-key opt-in flags (subset of `passed`). Conformance comparison matches on all five fields exactly. (Arithmetic clarified at Phase 5.5 Session 5.5.1B fix-up batch per spec-conformance-reviewer finding #11; per-bucket maxima raised to 8 at v1.0.9 amendment.)"
+    }
+  }
+}

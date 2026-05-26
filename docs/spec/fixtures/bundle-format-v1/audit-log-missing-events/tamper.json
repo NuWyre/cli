@@ -1,0 +1,19 @@
+{
+  "fixture": "audit-log-missing-events",
+  "description": "Manifest declares N audit log events but audit_log_events.jsonl contains only N-1 lines. The mutation surfaces as audit_log_events.jsonl SHA-256 mismatch (Check 2) and as a count-invariant failure when the verifier cross-checks declared-vs-actual event counts.",
+  "v1010_amendment": "Phase 6.2.A spec amendment 2026-05-15 audit-log-export bundle type. bundle.zip generation deferred to Phase 6.2.B implementation session per Decision 5 (minimum viable scope).",
+  "modifications": [
+    {
+      "file": "audit_log_events.jsonl",
+      "mutation": "Last line of audit_log_events.jsonl removed entirely (1 audit log event deleted from the file).",
+      "rationale": "manifest.audit_log_event_count (NEW field at v1.0.10 §16.8) declares N events; file contains N-1. The whole-event-deletion attack is the canonical signal that audit log evidence has been redacted post-signing — exactly the threat audit-log-export bundles are forensic evidence against."
+    }
+  ],
+  "expected_failures": [
+    "check 2 (artifact integrity): audit_log_events.jsonl declared bytes count in manifest does not match actual file size (truncated bytes); SHA-256 also mismatches.",
+    "check 9 (audit-log-merkle): manifest.audit_log_event_count declares N events but audit_log_events.jsonl contains N-1 lines; whole-event deletion attack detected."
+  ],
+  "notes": [
+    "Phase 7.D session 89 reconciliation: per session-88 Go-side closures (A.1.2 + A.1.3), Check 3 + Check 4 do NOT fail on this tamper. Check 3 is skipped for audit-log-export bundles with empty events.jsonl per spec §16.2.2 + §16.3.1; audit-log chain integrity + event-count invariant verification moved to Check 9. Check 4 verifies events subtree root which is empty/zero for audit-log-export bundles per dual-subtree composition. The whole-event-deletion attack (canonical threat audit-log-export bundles defend against) surfaces cleanly at Check 2 + Check 9."
+  ]
+}
