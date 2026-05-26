@@ -41,31 +41,32 @@ import (
 
 const (
 	// fixtureCommit1A1635B3Signature is the armored SSH signature from
-	// NuWyre/anchors commit 8bd621ee8f829ea00b35e9a559f8e9df6abaced4 (the
+	// NuWyre/anchors commit 3d5ea93a41ea426a43462ab0531248c483683551 (the
 	// .gitattributes commit). The var name keeps its historical label; the
-	// 2026-05-26 bot-identity migration (key rotated same day) rebuilt the
-	// commit under the dedicated NuWyre Anchors Bot key (new SHA above).
+	// bot-identity migration + subsequent rotation to an operator-generated
+	// key rebuilt the commit under the dedicated NuWyre Anchors Bot key
+	// (new SHA above).
 	// Signature ONLY — the signed commit payload is not reproduced here (this
 	// public test source stays identity-free). The signature embeds the bot's
 	// ssh-ed25519 public key, which is all TestExtractedKeyMatchesPinned needs
 	// to validate the pinned key against the real anchor signer. Verify/tamper
 	// coverage uses generated, bot-authored fixtures (see nameFreeFixture).
 	fixtureCommit1A1635B3Signature = `-----BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKUSxFPDZABLzV1bUDDB9uqA2MG
-4dDMkloi7AP458xA0AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQGpfYDLVRczMRX65MWIRm2NpSkxEDQ4AOY42XJsVNtiulw0ba+SkqXKA9+lnguoYwO
-MWN62pO+UCybo/g6hqHAo=
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgtZ7qhBjMkbWTK8LgR7QnqgMzkR
+9KM3esKPHTjUl3LhIAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+AAAAQA3YR4tdz3EkdhCglrQJK1y6Ouu02esfi8F4R5Tlx3Q3UgvhlGCcX05cMChJtLYy13
+A3KITXDFdLq9scoGO2lg0=
 -----END SSH SIGNATURE-----`
 
 	// fixtureCommitADE149B2Signature is the armored SSH signature from
-	// NuWyre/anchors commit a5c00e50e8d680c2a649be175d2d4feb5beac178 (the
+	// NuWyre/anchors commit 886f5fbd7ae62d57f5f3169a27db221ccb7d0591 (the
 	// 2026-04-22 daily root anchor, rebuilt under the rotated bot key).
 	// Signature only — same rationale as above.
 	fixtureCommitADE149B2Signature = `-----BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKUSxFPDZABLzV1bUDDB9uqA2MG
-4dDMkloi7AP458xA0AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQKrZP4ziSVNWziwALbm9Bugczk6yN7lJLg35ID+YvcTWULD8XScpfgtgKx0nqZPulz
-ArG/WORARl84FJsWoCdAE=
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgtZ7qhBjMkbWTK8LgR7QnqgMzkR
+9KM3esKPHTjUl3LhIAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+AAAAQCv1ZZio9tT6jVQ0cGFgwHsPS/guh2vsm/XlxOkmuVF2fb1NJ5nCEcmPWlPNSLicK6
+IstuwdXZs257Gn9t5Vswc=
 -----END SSH SIGNATURE-----`
 )
 
@@ -138,8 +139,8 @@ func TestExtractedKeyMatchesPinned(t *testing.T) {
 		name       string
 		armoredSig string
 	}{
-		{"8bd621ee (.gitattributes)", fixtureCommit1A1635B3Signature},
-		{"a5c00e50 (anchor 2026-04-22)", fixtureCommitADE149B2Signature},
+		{"3d5ea93a (.gitattributes)", fixtureCommit1A1635B3Signature},
+		{"886f5fbd (anchor 2026-04-22)", fixtureCommitADE149B2Signature},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
