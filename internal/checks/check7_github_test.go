@@ -184,7 +184,7 @@ func TestCheck7AnchoredPathRejectsNilFetcher(t *testing.T) {
 		anchor.MirrorStatus = "anchored"
 		fortyHex := strings.Repeat("a", 40)
 		anchor.CommitSha = &fortyHex
-		path := "daily-roots/00000000-0000-4000-8000-000000000001/" + date + "/root.json"
+		path := "daily-roots/00000000-0000-4000-8000-000000000001/" + date + "/example-demo/root.json"
 		anchor.Path = &path
 		anchoredAt := "2026-05-10T17:00:29Z"
 		anchor.AnchoredAt = &anchoredAt
@@ -237,7 +237,7 @@ func TestCheck7AnchoredRejectsBadCommitShaFormat(t *testing.T) {
 				cs := tc.commitSha
 				anchor.CommitSha = &cs
 				anchor.CommitShaFormat = tc.format
-				path := "daily-roots/00000000-0000-4000-8000-000000000001/" + date + "/root.json"
+				path := "daily-roots/00000000-0000-4000-8000-000000000001/" + date + "/example-demo/root.json"
 				anchor.Path = &path
 				at := "2026-05-10T17:00:29Z"
 				anchor.AnchoredAt = &at
@@ -276,7 +276,7 @@ func TestCheck7AnchoredRejectsNullCommitSha(t *testing.T) {
 		anchor.MirrorStatus = "anchored"
 		anchor.CommitShaFormat = "sha1"
 		anchor.CommitSha = nil // null
-		path := "daily-roots/00000000-0000-4000-8000-000000000001/" + date + "/root.json"
+		path := "daily-roots/00000000-0000-4000-8000-000000000001/" + date + "/example-demo/root.json"
 		anchor.Path = &path
 		at := "2026-05-10T17:00:29Z"
 		anchor.AnchoredAt = &at
@@ -324,7 +324,7 @@ func TestCheck7AnchoredExampleDemoRequiresAllowDevKey(t *testing.T) {
 		anchor.MirrorStatus = "anchored"
 		anchor.CommitShaFormat = "sha1"
 		anchor.CommitSha = &commitSha
-		path := "daily-roots/" + b.Manifest.OrganizationID + "/" + date + "/root.json"
+		path := "daily-roots/" + b.Manifest.OrganizationID + "/" + date + "/" + b.Manifest.BundleType + "/root.json"
 		anchor.Path = &path
 		at := "2026-05-10T17:00:29Z"
 		anchor.AnchoredAt = &at
@@ -375,7 +375,7 @@ func TestCheck7AnchoredCustomerExportPlaceholderFastFails(t *testing.T) {
 		anchor.MirrorStatus = "anchored"
 		anchor.CommitShaFormat = "sha1"
 		anchor.CommitSha = &commitSha
-		path := "daily-roots/" + b.Manifest.OrganizationID + "/" + date + "/root.json"
+		path := "daily-roots/" + b.Manifest.OrganizationID + "/" + date + "/" + b.Manifest.BundleType + "/root.json"
 		anchor.Path = &path
 		at := "2026-05-10T17:00:29Z"
 		anchor.AnchoredAt = &at

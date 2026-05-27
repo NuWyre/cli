@@ -12,11 +12,12 @@ import (
 // Anchor-repo root.json schema parser. Phase 4 Session 3 D4 commit 1.
 //
 // Mirrors the v3.1.8 root.json schema with the Phase 4 prereq
-// Session A per-org extension as documented in spec §12.2 and
+// Session A per-org extension + the Phase 6.2.C session 70 per-
+// bundle_type extension (BACKLOG 1.33) as documented in spec §12.2 and
 // implemented by packages/evidence/src/anchor-schema.ts. Each anchor
 // commit places one root.json file at:
 //
-//	daily-roots/<organization_id>/<date>/root.json
+//	daily-roots/<organization_id>/<date>/<bundle_type>/root.json
 //
 // The verifier (check 7's anchored cross-check, currently stubbed
 // in D4 commit 2) cross-checks every field in this object against

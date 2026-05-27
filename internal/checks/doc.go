@@ -21,6 +21,7 @@
 //     embedded .chain.pem; ≥2 of 3 distinct TSAs required per day).
 //  7. GitHub anchor cross-check (commit_sha format-dispatched per
 //     bundle's commit_sha_format; root.json contents at
-//     daily-roots/<organization_id>/<date>/ match the bundle's
-//     claims; SSH signature verifies against pinned issuer SSH key).
+//     daily-roots/<organization_id>/<date>/<bundle_type>/ match the
+//     bundle's claims; SSH signature verifies against pinned issuer
+//     SSH key).
 package checks
