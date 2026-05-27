@@ -1,0 +1,9 @@
+# Lock LF across platforms; git auto-detects text vs binary. The repo is
+# already 100% LF -- this ENFORCES it so a future commit (e.g. a re-export from
+# a Windows working tree) cannot introduce CRLF into this public Go module.
+* text=auto eol=lf
+
+# Byte-exact archives the verifier hashes (conformance fixtures + example
+# bundle) + build outputs -- never normalize.
+*.zip binary
+*.wasm binary
